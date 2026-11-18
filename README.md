@@ -1,3 +1,6 @@
+> This is a fork of [KrakowHEPSoft/KKMCee](https://github.com/KrakowHEPSoft/KKMCee) with the changes used to build KKMCee in the Key4hep stack.
+> The `LCG` branch started from the upstream [`v5.00.02` tag](https://github.com/KrakowHEPSoft/KKMCee/releases/tag/v5.00.02).
+
 # KKMCee-dev
 KKMCee Development
 

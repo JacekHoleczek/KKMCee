@@ -1,0 +1,12 @@
+FROM fedora:40
+RUN  yum -y  install  dnf-plugins-core \
+                      bc make ninja-build cmake binutils git wget diffutils file sed gawk grep which autoconf automake libtool ccache \
+                      gcc-gfortran gcc-c++ clang bzip2 \
+                      root root-physics root-mathcore root-mathmore root-matrix root-genvector root-foam \
+                      HepMC3-rootIO-devel HepMC3-devel HepMC3-search HepMC3-search-devel  HepMC3-rootIO HepMC3  HepMC HepMC-devel \
+                      python3 texinfo tex latexmk 'tex(latex)' ghostscript 'tex(sectsty.sty)' 'tex(type1cm.sty)' && yum -y clean all
+
+RUN export RPM_ARCH=$(uname -m)
+# rivet-release is 3.1.x
+RUN  dnf -y copr enable aprice/kkkmcdep && yum -y  install rivet-release rivet-release-devel fastjet YODA YODA-devel fastjet-devel &&  yum -y  clean all
+RUN  dnf -y copr enable averbyts/HEPrpms && yum -y install  PHOTOS &&  yum -y  clean all

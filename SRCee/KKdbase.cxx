@@ -61,6 +61,7 @@ void KKdbase::Initialize(double xpar[] )
   KeyINT = m_xpar[27];
   KeyGPS = m_xpar[28];
   KeyWgt = m_xpar[10];
+  KeyEEX = m_xpar[11];
   KeyElw = m_xpar[12];
   KeyThe = m_xpar[14];    // Theta generation by Foam Born/Flat
   KeyPia = m_xpar[22];
@@ -71,6 +72,7 @@ void KKdbase::Initialize(double xpar[] )
   BX1I(*m_Out,"   KeyBES", KeyBES,    " Beam Energy Spread type          [25]          =");
   BX1I(*m_Out,"   KeyGPS", KeyGPS,    " GPS/CEEX matrix element type     [28]          =");
   BX1I(*m_Out,"   KeyWgt", KeyWgt,    " WTed/unWTed events  switch       [10]          =");
+  BX1I(*m_Out,"   KeyEEX", KeyEEX,    " EEX Order                        [11]          =");
   BX1I(*m_Out,"   KeyThe", KeyThe,    " Born/Flat cos(The) FOAM generat. [14]          =");
   KeyPhts = m_xpar[35];
   BX1I(*m_Out,"  KeyPhts", KeyPhts,   " PHOTOS++ switch                  [35]          =");

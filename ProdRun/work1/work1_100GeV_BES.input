@@ -24,7 +24,7 @@ BeginX
 *indx_____data______ccccccccc0ccccc________Process______ccc0ccccccccc0ccccccccc0
 **  Beam Energy Spread type
    25              1      KeyBES BES, =0 none, =1 Gausian, =2 beamsstrahlung
-   25              2      KeyBES BES, =0 none, =1 Gausian, =2 beamsstrahlung
+***   25              2      KeyBES BES, =0 none, =1 Gausian, =2 beamsstrahlung
 ***    Interference ISR/FSR to be ON/OFF, =2 for M.Greco resumation
    27              0      KeyINT=xpar(27)  Default is  2
 *indx_____data______ccccccccc0ccccccccc0ccccccccc0ccccccccc0ccccccccc0ccccccccc0
@@ -34,7 +34,6 @@ BeginX
    83       0.132e-2      ParBES(3) sigma2, dimensionles
 ***   84        0.500e0      ParBES(3) rho correlation parameter, dimensionles
    84       -0.745e0      ParBES(3) rho correlation parameter, dimensionles
-   84          0.0e0      ParBES(3) rho correlation parameter, dimensionles
 *indx_____data______ccccccccc0ccccc________Process______ccc0ccccccccc0ccccccccc0
 *     Define process
 *     LIST of Final state flavours to be generated randomly according

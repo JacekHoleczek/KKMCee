@@ -18,7 +18,7 @@ using namespace std;
 #include <TFile.h>
 #include <TKey.h>
 ///////////////////////////////////////////////////////////////////////////////
-///   Librarry of auxiliary procedures for digesting MC results
+///   Library of auxiliary procedures for digesting MC results
 ///   mainly functions with analytical results and tools for histograms
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -29,8 +29,15 @@ class TKfig  : public TObject {
 
   TKfig();
   virtual ~TKfig(){};                         // Destructor
-  virtual void HistNorm(TH1D *NorHst, TH1D *Hst);
-  virtual void HistNorm2(TH1D *NorHst, TH2D *Hst);
+
+  virtual void HisNorm1(TH1D *NorHst, TH1D *Hst);
+  virtual void HisNorm2(TH1D *NorHst, TH2D *Hst);
+  TH1D *HstDiff( TString title, TH1D *HST1, TH1D *HST2, Int_t kolor);
+  TH1D *HstRatio(TString title, TH1D *HST1, TH1D *HST2, Int_t kolor);
+
+  virtual void HistNorm(TH1D *NorHst, TH1D *Hst);  // OLD OBSOLETE !!!
+  virtual void HistNorm2(TH1D *NorHst, TH2D *Hst); // OLD OBSOLETE !!!
+
   virtual void HistNormalize(TString normname, TFile *file);
 
   virtual TH1D *DefHist1D(TString, TString,TH1D*, const char*, const char*);

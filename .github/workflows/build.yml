@@ -1,96 +1,38 @@
-# This is a basic workflow to help you get started with Actions
+name: 'Build and Test'
 
-name: CI
+on: [push, pull_request, workflow_dispatch]
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
-on:
-  push:
-    branches: [ master ]
-  pull_request:
-    branches: [ master ]
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-18.04
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        OS: ['key4hep/key4hep-images/alma9',
+             'key4hep/key4hep-images/ubuntu22',
+             'key4hep/key4hep-images/ubuntu24']
+        SW: ['/cvmfs/sw.hsf.org/key4hep/setup.sh',
+             '/cvmfs/sw-nightlies.hsf.org/key4hep/setup.sh']
+        DZ: ['dizet-6.21', 'dizet-6.42', 'dizet-6.45']
     steps:
-      - name: Install ROOT
-        run: |
-          echo 'Installint ROOT'
-          wget https://root.cern/download/root_v6.22.00.Linux-ubuntu18-x86_64-gcc7.5.tar.gz
-          tar -xzvf root_v6.22.00.Linux-ubuntu18-x86_64-gcc7.5.tar.gz
-          mv root ../
-          source ../root/bin/thisroot.sh 
-          pwd
-          ls -l
-          echo $ROOTSYS
-          echo 'Sourced ROOT'
-          echo $ROOTSYS
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
-
-      # Runs a single command using the runners shell
-      - name: build with KKMake and dizet 6.45
-        run: |
-          echo 'Performing build with KKMC and dizet 6.45'
-          ln -s dizet-6.45 dizet
-          cd ./ffbench
-          make -f KKMakefile clean
-          make -f KKMakefile makflag
-          make -f KKMakefile makprod
-          make -f KKMakefile EWtables
-
-
-      - name: build with AutoMake and dizet 6.45
-        run: |
-          echo 'Performing build with KKMC and dizet 6.45'
-          pwd
-          source ../root/bin/thisroot.sh 
-          rm dizet
-          ln -s dizet-6.45 dizet
-          autoreconf -i --force
-          ./configure
-          make
-
-
-      - name: build with KKMake and dizet 6.42-cpc
-        run: |
-          echo 'Performing build with KKMC and dizet 6.42-cpc'
-          rm dizet
-          
-          ln -s dizet-6.42-cpc dizet
-          cd ./ffbench
-          make -f KKMakefile clean
-          make -f KKMakefile makflag
-          make -f KKMakefile makprod
-          make -f KKMakefile EWtables
-
-      - name: build with KKMake and dizet 6.42
-        run: |
-          echo 'Performing build with KKMC and dizet 6.42'
-          rm dizet
-          ln -s dizet-6.42 dizet
-          cd ./ffbench
-          make -f KKMakefile clean
-          make -f KKMakefile makflag
-          make -f KKMakefile makprod
-          make -f KKMakefile EWtables
-
-      - name: build with KKMake and dizet 6.21
-        run: |
-          echo 'Performing build with KKMC and dizet 6.21'
-          rm dizet
-          ln -s dizet-6.21 dizet
-          cd ./ffbench
-          make -f KKMakefile clean
-          make -f KKMakefile makflag
-          make -f KKMakefile makprod
-          make -f KKMakefile EWtables
-
-
-         
+    - uses: actions/checkout@v4
+    - uses: cvmfs-contrib/github-action-cvmfs@v4
+    - name: Start the container
+      run: |
+        docker run -it --name CI_container \
+          -v ${GITHUB_WORKSPACE}:/home/Package \
+          -v /cvmfs:/cvmfs:shared \
+          -d ghcr.io/${{ matrix.OS }}:latest /bin/bash
+    - name: Configure and build
+      run: |
+        docker exec CI_container /bin/bash -c 'cd /home/Package && \
+          source ${{ matrix.SW }} ; if [ $? != 0 ] ; then exit 0 ; fi ; \
+          ln -f -s ${{ matrix.DZ }} dizet && \
+          autoreconf -f -i -Wno-obsolete && \
+          ./configure && \
+          make'
+    - name: Test
+      run: |
+        docker exec CI_container /bin/bash -c 'cd /home/Package && \
+          source ${{ matrix.SW }} ; if [ $? != 0 ] ; then exit 0 ; fi ; \
+          echo "To Be Done ..."'

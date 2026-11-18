@@ -40,7 +40,7 @@ TRobol::TRobol(const char* Name){
 //! Constructor to be used by the user!!!
   cout<< "****> TRobol::TRobol USER Constructor "<<endl;
   ///
-  if(strlen(Name)  >65) StopM("TRobol::TRobol: +++ stop, Name too long");
+  if(strlen(Name) >= sizeof(f_Name)) StopM("TRobol::TRobol: +++ stop, Name too long");
   sprintf(f_Name,"%s",Name);         // Class name
   ///
   f_HistNormName = "h_TMCgen_NORMA";

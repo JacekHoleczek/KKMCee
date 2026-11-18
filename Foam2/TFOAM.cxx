@@ -907,7 +907,7 @@ TFOAM::TFOAM(){
 TFOAM::TFOAM(const char* Name){
 // Constructor
   //cout<< "====> TFOAM::TFOAM Constructor "<<endl;
-  if(strlen(Name)  >129) {
+  if(strlen(Name) >= sizeof(m_Name)) {
     cout<< " ++++STOP in TFOAM::TFOAM, Name too long "<<strlen(Name)<<endl;
     exit(2);
   }
@@ -1097,8 +1097,8 @@ void TFOAM::Initialize(TRandom *PseRan, TFOAM_INTEGRAND *fun ){
   }
   //====== Initialize list of histograms
 #ifdef ROOT_DEF
-  char hname[100];
-  char htitle[100];
+  char hname[(128 + 64)]; // note: at least [(sizeof(m_Name) + 22)] needed
+  char htitle[64]; // note: at least [30] needed
   sprintf(hname,"%s_HistEdge_",m_Name);
   m_HistWt  = new TH1D(hname,"Histogram of MC weight",100,0.0, 1.5*m_MaxWtRej); // MC weight
   m_HistEdg = new TObjArray(m_nProj);           // Initialize list of histograms

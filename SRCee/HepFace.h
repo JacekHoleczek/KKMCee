@@ -31,10 +31,13 @@ class HepFace: public TObject{
  ofstream *m_Out;     //! pointer to external Logfile for messages
 // class member data
  public:
- KKevent   *m_Event;           //! MC event ISR+FSR in KKMC format
- GenEvent  *m_Hvent;           //! HEPMC3 event (no persistency)
+ KKevent    *m_Event;           //! MC event ISR+FSR in KKMC format
+ GenEvent   *m_Hvent;           //! HEPMC3 event (no persistency)
+ // std::shared_ptr<GenRunInfo> m_runinfo = std::make_shared<GenRunInfo>();
  vector<GenParticlePtr>  m_tauPdecay; //! tau+ decay products
  vector<GenParticlePtr>  m_tauMdecay; //! tau- decay products
+ bool set_run_info;
+ int m_count;
 //------------------------------------
 // Obligatory members
   public:
@@ -51,12 +54,22 @@ void SetHvent( GenEvent *Event){ m_Hvent = Event;};
 FourVector Vect4( TLorentzVector X){ return FourVector(X.Px(),X.Py(),X.Pz(),X.E()); };
 
 void Initialize();
-void WriteHEPC();
+void WriteHEPC(const bool &multiwgt);
 void FillHep3(int N, int IST, int ID, int JMO1, int JMO2, int JDA1, int JDA2, float P4[], float &PINV, bool PHFLAG);
 void tauolaToHEPMC3();
 void MomentumCheck();
 ////////////////////////////////////////////////////////////////////////////
-       ClassDef(HepFace,1); // Data base
+       ClassDef(HepFace,2); // Data base
 };// HepFace class
 ////////////////////////////////////////////////////////////////////////////
+class WeightContainer: public std::vector< std::pair<std::string, double> > {
+  public:
+  double& operator[](const std::string s) {
+    for (auto a = this->begin(); a != this->end(); ++a)
+    if (a->first == s) return a->second;
+    this->push_back(std::pair<std::string,double>(s, 0.0));
+    return this->back().second; 
+ }
+};
+
 #endif

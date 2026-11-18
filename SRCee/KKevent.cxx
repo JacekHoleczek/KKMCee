@@ -267,6 +267,7 @@ if( abs(CosTheta) > 1.0 ) {
 
 void KKevent::ZBoostALL(){
 double exe   = sqrt((1-m_r1)/(1-m_r2));
+exe=1.0/exe;  // correcting direction of boost due to BES
 double b3= (exe -1/exe)/(exe+1/exe);
 m_Pf1.Boost(0,0,b3);
 m_Pf2.Boost(0,0,b3);
@@ -432,6 +433,11 @@ for(int i=1; i<= m_nPhot; i++){
 	MomtSum += m_PhotAll[i];
 }
 cout<< "m_Sum  "; MomPrint(MomtSum); cout<<"   "<< MomtSum.M() <<endl;
+cout<<"-------------------------------xcheck on BES/beamstrahlung -----------------------------------------------------"<<endl;
+cout<< "m_Rem1 "; MomPrint(m_Rem1); cout<<"   "<< m_Rem1.M() <<endl;
+cout<< "m_Rem2 "; MomPrint(m_Rem2); cout<<"   "<< m_Rem2.M() <<endl;
+MomtSum += m_Rem1+m_Rem2;
+cout<< "SumAll "; MomPrint(MomtSum); cout<<"   "<< MomtSum.M() <<endl;
 cout<<"----------------------------------------------------------------------------------------------------------------"<<endl;
 }//EventPrintAll
 
@@ -463,7 +469,7 @@ for(int i=1; i<= m_nPhot; i++){
 	MomtSum += m_PhotAll[i];
 }
 *Out<< "m_Sum  "; MomPrint(Out,MomtSum); *Out<<"   "<< MomtSum.M() <<endl;
-*Out<<"-------------------------------initial BES/beamstrahlung -------------------------------------------------------"<<endl;
+*Out<<"-------------------------------xcheck on BES/beamstrahlung -----------------------------------------------------"<<endl;
 *Out<< "m_Rem1 "; MomPrint(Out,m_Rem1); *Out<<"   "<< m_Rem1.M() <<endl;
 *Out<< "m_Rem2 "; MomPrint(Out,m_Rem2); *Out<<"   "<< m_Rem2.M() <<endl;
 MomtSum += m_Rem1+m_Rem2;
@@ -471,5 +477,126 @@ MomtSum += m_Rem1+m_Rem2;
 *Out<<"----------------------------------------------------------------------------------------------------------------"<<endl;
 }//EventPrintAll
 
+ofstream KKevent::LHEF_init(string filename){
+/////////////////////////////////////////////////////////////////////////////////
+// This function creates new Les Houches event file
+/////////////////////////////////////////////////////////////////////////////////
+    fstream Out;
+    Out.open(filename, std::ios::out);
+    Out << "<LesHouchesEvents version=\"1.0\">\n";
+    Out << "<!--\n";
+    Out << "   File Created with KKMC\n";
+    Out << "-->\n";
+    Out << "<init>\n";
+    Out << "  11  -11  "<< m_CMSene/2.<<"  "<< m_CMSene/2. << "  0  0  0  0  3  1\n";	
+    Out << "  0.1  1.0e-06  1.000000e+00   9999\n";
+    Out << "</init>\n";
+    Out.close();
+    ofstream LHE(filename,ios::out | ios::app);
+    return LHE;
+}//LHEF_init
 
+void KKevent::LHEF_Fill(ofstream *Out){
+/////////////////////////////////////////////////////////////////////////////////
+// This function fills one event into Les Houches event file
+/////////////////////////////////////////////////////////////////////////////////
+    
+    *Out << "<event>\n";
+    int nhep = m_nPhot + 5;
+    double ECM = m_CMSene;
+    *Out << setprecision(12) 
+         <<setw(14) << nhep << '\t' 
+         <<setw(14) << 9999 << '\t' 
+         <<setw(14) << 1. << '\t' 
+         <<setw(14) << ECM << '\t' 
+         <<setw(14) << 1./m_aQEDinv << '\t'
+         <<setw(14) << m_aQCD << '\n';
+
+    //fill beam electrons
+    vector<TLorentzVector> electrons{m_Pf1,m_Pf2};
+    for(int i = 0; i<2; ++i){
+
+        TLorentzVector particle = electrons[i];
+        int pid = (i == 0) ? m_KFini : -m_KFini;
+        int status = -1;
+        int mother1 = 0;
+        int mother2 = 0;
+        int col1 = 0;
+        int col2 = 0;
+        
+        print_LHE_entry(Out, pid, status, mother1, mother2, col1, col2, particle);
+    }
+
+    //fill Z
+    {
+        TLorentzVector particle = m_PX;
+        int pid = 23;
+        int status = 2;
+        int mother1 = 1;
+        int mother2 = 2;
+        int col1 = 0;
+        int col2 = 0;
+
+        print_LHE_entry(Out, pid, status, mother1, mother2, col1, col2, particle);
+    }
+
+    //fill photons
+    for(int i = 1; i <= m_nPhot; ++i){ //f77 indexing
+
+        TLorentzVector particle = m_PhotAll[i];
+        int pid = 22;
+        int status = 1;
+        int mother1 = 1;
+        int mother2 = 2;
+        int col1 = 0;
+        int col2 = 0;
+
+        print_LHE_entry(Out, pid, status, mother1, mother2, col1, col2, particle);
+    }
+
+    //fill final fermions
+    vector<TLorentzVector> final_fermions{m_Qf1,m_Qf2};
+    for(int i = 0; i<2; ++i){
+
+        TLorentzVector particle = final_fermions[i];
+        int pid = (i == 0) ? m_KFfin : -m_KFfin;
+        int status = 1;
+        int mother1 = 3;
+        int mother2 = 3;
+        int col1 = 0;
+        int col2 = 0;
+        if(pid < 6 && pid > 0) col1 = 101;
+        else if(pid > -6 && pid < 0) col2 = 101;
+        
+        print_LHE_entry(Out, pid, status, mother1, mother2, col1, col2, particle);
+    }
+
+    *Out << "</event>\n";
+}//LHEF_Fill
+
+void KKevent::print_LHE_entry(ofstream *Out, int pid, int status, int mother1, int mother2, int col1, int col2, TLorentzVector particle){
+/////////////////////////////////////////////////////////////////////////////////
+// Helper function to fill Les Houches event
+/////////////////////////////////////////////////////////////////////////////////
+    *Out <<setw(14) << pid <<'\t'
+         <<setw(14) << status <<'\t'
+         <<setw(14) << mother1 <<'\t'
+         <<setw(14) << mother2 <<'\t'
+         <<setw(14) << col1 <<'\t'
+         <<setw(14) << col2 <<'\t'
+         <<setw(14) << particle.Px() <<'\t'
+         <<setw(14) << particle.Py() <<'\t' 
+         <<setw(14) << particle.Pz() <<'\t'
+         <<setw(14) << particle.E() <<'\t'
+         <<setw(14) << particle.M() <<'\t'
+         <<setw(14) << 0 <<'\t'
+         <<setw(14) << 0 <<'\n';
+} //print_LHE_entry
+
+void KKevent::LHEF_Close(ofstream *Out){
+/////////////////////////////////////////////////////////////////////////////////
+// Just a closing line
+/////////////////////////////////////////////////////////////////////////////////
+    *Out << "</LesHouchesEvents>";
+}//LHEF_Close
 

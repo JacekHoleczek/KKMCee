@@ -28,6 +28,8 @@ class KKevent: public TObject{
  static const int maxWT   =  1001;   // max. num. KKMC wt list +1
  double         m_CMSene;            // hadron-hadron CMS energy
  double         m_XXXene;            // parto-parton  CMS energy
+ double   m_aQEDinv;                 // inverse alphaQED for LHE file
+ double   m_aQCD;                    // alphaQCD for LHE file
  // internal MC generation variables changing event per event
  long     m_EventCounter;            // event serial counter
  int      m_KFini;                   // incoming fermion ID (negative if 1st is anti)
@@ -45,8 +47,8 @@ class KKevent: public TObject{
  TLorentzVector m_Qf1;               // final fermion m_q1
  TLorentzVector m_Qf2;               // final fermion m_q2
  TLorentzVector m_PX;                // Z boson after ISR before FSR (unphysical)
- TLorentzVector m_Rem1;              // (BES) remnant 1
- TLorentzVector m_Rem2;              // (BES) remnant 2
+ TLorentzVector m_Rem1;              // (BES) 4-mom. loss due to BES (unphysical)
+ TLorentzVector m_Rem2;              // (BES) 4-mom. loss due to BES (unphysical)
  int            m_nPhot;             // No of generated photons ISR+FSR
  int      m_nPhotISR, m_nPhotFSR;    // No of generated photons ISR, FSR
  int            m_isr[maxPhot];      // marker of ISR photons, f77 indexing
@@ -68,6 +70,7 @@ class KKevent: public TObject{
  double   m_WtMain;                // Main weight
  double   m_WtSet[maxWT];          // list of alternative weights f77 indexing
  double   m_WtSetNew[maxWT];       // list of alternative weights f77 indexing
+ double   m_WtEvent[maxWT];       // list of CEEX weights for HEPMC f77 indexing
  double   m_WtAlter[maxWT];        // list of alternative weights f77 indexing
 //------------------------------------
 // Obligatory members
@@ -113,9 +116,14 @@ void PrintISR_FSR(ofstream *Out);
 //
 void EventPrintAll();
 void EventPrintAll(ofstream *Out);
+inline void SetEventWeight(const int &i, const double &w) { m_WtEvent[i] = w; }
 //
+ofstream LHEF_init(string filename);
+void LHEF_Fill(ofstream *Out);
+void print_LHE_entry(ofstream *Out, int pid, int status, int mother1, int mother2, int col1, int col2, TLorentzVector particle); 
+void LHEF_Close(ofstream *Out); //test
 ////////////////////////////////////////////////////////////////////////////
-       ClassDef(KKevent,1); // Data base
+       ClassDef(KKevent,2); // Data base
 };// KKevent class
 ////////////////////////////////////////////////////////////////////////////
 #endif

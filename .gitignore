@@ -54,12 +54,21 @@ ProdDigest/PlotBES
 ProdDigest/PlotNU
 ProdDigest/PlotTau
 ProdDigest/TabIIIPRD
+ProdRun/MainBES
 ProdRun/MainFoam
 ProdRun/MainKKMC
 ProdRun/MainMini
+ProdRun/MainPers
+ProdRun/MainCluster
+ProdRun/MainKKMCee
 SRCee/TestMini1
 dizet
 dizet-*/TabMain
+bin/
+dizet-*/dizet-*
+include/
+lib/
+
 
 # ROOT generated files
 *Dict.cxx
@@ -68,6 +77,15 @@ lib*.h
 *_rdict.pcm
 
 # run results to ignore
+*.output
 *.out.txt
 *.root
+*.DS_Store
 
+
+# CI Ignore
+CI/physics-val/91.2gev/deviations.yoda
+CI/physics-val/91.2gev/logfiles/
+CI/physics-val/91.2gev/yodafiles/
+CI/plots/
+CI/run-dir/

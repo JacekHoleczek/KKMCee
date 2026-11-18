@@ -27,6 +27,7 @@ class KKdbase: public TObject{
  public:
  double   CMSene;
  int      KeyGPS;
+ int      KeyEEX;
  int      KeyINT;
  int      KeyISR;
  int      KeyFSR;
@@ -95,7 +96,7 @@ class KKdbase: public TObject{
 
  void Initialize(double []);
 ////////////////////////////////////////////////////////////////////////////
-      ClassDef(KKdbase,1); // Data base
+      ClassDef(KKdbase,2); // Data base
 };
 ////////////////////////////////////////////////////////////////////////////
 #endif

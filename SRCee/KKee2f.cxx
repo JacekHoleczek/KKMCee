@@ -103,6 +103,9 @@ KKee2f::KKee2f()
   m_KKexamp  = NULL;
   m_Event    = NULL;
   m_Hvent    = NULL;
+  m_UserBESdist = NULL;
+  for (int i = 0; i <= 3; ++i) m_WtCEEXMonit[i] = NULL;
+  
 }
 
 ///_____________________________________________________________
@@ -127,6 +130,8 @@ KKee2f::KKee2f(const char* Name): TMCgen(Name)
   m_KKexamp  = NULL;
   m_Event    = NULL;
   m_Hvent    = NULL;
+  for (int i = 0; i <= 3; ++i) m_WtCEEXMonit[i] = NULL;
+//m_UserBESdist = NULL; // for misterious reasons had to be moved to Initialize()
   //
   m_EventCounter = 0;
   m_icont = 0;
@@ -152,6 +157,9 @@ KKee2f::~KKee2f()
 void KKee2f::Initialize(TRandom *RNgen, ofstream *OutFile, TH1D* h_NORMA)
 {
   cout<< "----> KKee2f::Initialize, Entering "<<endl;
+  // workaround, moved here rom user constructor
+  SetUserBESdist(0); // make sure it is initialized
+
 // Base class assigns  f_Out,  f_RNgen,  f_TMCgen_NORMA
 // Foam Object pointer f_FoamI is also defined, not assigned
   TMCgen::Initialize(  RNgen, OutFile, h_NORMA);
@@ -184,9 +192,10 @@ void KKee2f::Initialize(TRandom *RNgen, ofstream *OutFile, TH1D* h_NORMA)
 
 //////////////////////////////////////////////////////////////
   const int jmax = maxPar-1;
-  ReaData("./KKMCee_defaults", jmax, m_xpar);       // f77 indexing in xpar
-  ReaData("./pro.input",      -jmax, m_xpar);       // jmax<0 for overwriting defaults
+  ReaData("./KKMCee_defaults", jmax, m_xpar, &hepmc_out_name);       // f77 indexing in xpar
+  ReaData("./pro.input",      -jmax, m_xpar, &hepmc_out_name);       // jmax<0 for overwriting defaults
   for(int j=0;j<jmax;j++) m_ypar[j]=m_xpar[j+1];    // c++ indexing in ypar
+  save_to_hepmc = m_xpar[100];
 
 //////////////////////////////////////////////////////////////
 //  Data base of static input data
@@ -254,7 +263,9 @@ void KKee2f::Initialize(TRandom *RNgen, ofstream *OutFile, TH1D* h_NORMA)
 
   cout<<"%%%%%  Beam Eenergy Spread (BES) parameters %%%%% "<<endl;
   cout<<" KeyBES = "<< DB->KeyBES<<endl;
-  for(int i=0;i<5;i++) m_ParBES[i] = m_xpar[80+i]; // CIRCE params
+  for(int i=0;i<5;i++) m_ParBES[i] = m_xpar[80+i]; // Gaussian BES params
+  if(m_ParBES[0] <= 0.0) m_ParBES[0] = 0.5*m_CMSene;
+  if(m_ParBES[1] <= 0.0) m_ParBES[1] = 0.5*m_CMSene;
   cout<<" ParBES[*]=";
   for(int i=0;i<5;i++) cout<<"  "<<m_ParBES[i]; cout<<endl;
   cout<<"%%%%%  Beamstrahlung parameters %%%%% "<<endl;
@@ -296,7 +307,11 @@ void KKee2f::Initialize(TRandom *RNgen, ofstream *OutFile, TH1D* h_NORMA)
   cout<<" TMCgen::Initialize:  xpar filled into h_NORMA  "<<endl;
 
   m_WtMainMonit = new TWtMon("WtMainMonit","WtMain",100,DB->WTmax);
-
+  if(DB->KeyGPS != 0){
+    m_WtCEEXMonit[1] = new TWtMon("CEEX0","WtCeex0",100,DB->WTmax);
+    m_WtCEEXMonit[2] = new TWtMon("CEEX1","WtCeex1",100,DB->WTmax);
+    m_WtCEEXMonit[3] = new TWtMon("CEEX2","WtCeex2",100,DB->WTmax);
+  }
   cout  << "   *******************************" << endl;
   cout  << "   **** KKee2f:Initialize END ****" << endl;
   cout  << "   *******************************" << endl;
@@ -433,8 +448,10 @@ double cmax = 0.99999999;
 m_CosTheta = cmax*( -1.0 + 2.0* Xarg[iarg] ); iarg++;
 //Rho *= 2.0*cmax;  // jacobian
 //==========================================================
+
 m_r1=0.0; m_r2=0.0;
-int optGauss = 2;   // Gaussian BES with/without mapping
+int optGauss = 1;   // Gaussian BES without mapping
+//int optGauss = 0;   // Gaussian BES with mapping
 //////////////////  Beam spread ///////////////////////
 if(        DB->KeyBES == 0){
   m_Ebeam1  = 0.5*m_CMSene;
@@ -456,13 +473,17 @@ else if(   DB->KeyBES == 1){
    m_r2 = delE2/E2; // can be negative
    m_Ebeam1  = E1+delE1; // =E1*(1+m_r1)
    m_Ebeam2  = E2+delE2; // =E2*(1+m_r2)
-   dGauss = sqr(delE1/sigma1)+ sqr(delE2/sigma2)-2*corho*(delE1/sigma1)*(delE2/sigma2);
-   dGauss = exp(-0.5/(1-sqr(corho))*dGauss);
-   dGauss *= 1/(2.0*M_PI)/(sigma1*sigma2)/sqrt(1-sqr(corho)); // Normalization factor
+  //dGauss= BESdist(m_Ebeam1, m_Ebeam2, m_ParBES);
+   if (m_UserBESdist) { // using external user provided function
+       dGauss = (*m_UserBESdist)(m_Ebeam1, m_Ebeam2, m_ParBES);
+     } else { // using "predefined" internal method
+       dGauss = BESdist(m_Ebeam1, m_Ebeam2, m_ParBES);
+     }// if
    Rho *= dGauss;
   }else{
+   // Not used but keep it.
    // mapping of Patrick Janot for 2-dim Gaussian BES with optional correlation
-   // in this case Jacobian*distribution=1 is omitted.
+   // in this case Jacobian*distribution=1, and is omitted.
    double r1 = Xarg[iarg]; iarg++;
    double r2 = Xarg[iarg]; iarg++;
    double x1 = sqrt(-2.*log(r1)) * cos(2.*M_PI*r2);
@@ -489,6 +510,9 @@ else if(   DB->KeyBES == 1){
   double SF2 = m_ParCIRCE[1]*exp(log(m_r2)*m_ParCIRCE[3]) *exp(log(1-m_r2)*m_ParCIRCE[2]);   // the same as circee
   double SF12 = (GS1+SF1)*(GS2+SF2);
   Rho *=SF12;
+} else {
+  cout<<"++++++ wrong KeyBES = " << DB->KeyBES <<endl;
+  exit(10);
 }// if KeyBES
 m_XXXene =  2*sqrt(m_Ebeam1*m_Ebeam2);
 //--------------------------------------------
@@ -559,6 +583,24 @@ if( abs(Rho) < 1e-150) Rho=1e-150;  // Foam does not tolerate zero integrand
 //
 return Rho;
 }//RhoFoam5
+
+double KKee2f::BESdist(const double &Ebeam1, const double &Ebeam2, const double ParBES[]){
+  double dGauss,sigma1,sigma2,corho, E1,E2, delE1,delE2;
+  // Ebeam1 and Ebeam2 are beam energies generated by FOAM
+  // E1 and E2 are constant reference beam energies from input data
+  E1 = ParBES[0];
+  E2 = ParBES[1];
+  sigma1= ParBES[2]*E1;  // gaussian dispersion beam1
+  sigma2= ParBES[3]*E2;  // gaussian dispersion beam2
+  corho = ParBES[4];     // gaussian correlation
+  //
+  delE1=Ebeam1-E1;
+  delE2=Ebeam2-E2;
+  dGauss = sqr(delE1/sigma1)+ sqr(delE2/sigma2)-2*corho*(delE1/sigma1)*(delE2/sigma2);
+  dGauss = exp(-0.5/(1-sqr(corho))*dGauss);
+  dGauss *= 1/(2.0*M_PI)/(sigma1*sigma2)/sqrt(1-sqr(corho)); // Normalization factor
+  return dGauss;
+};
 
 
 double KKee2f::RhoISRold(double vv, double CMSene){
@@ -680,8 +722,9 @@ m_Event->m_nPhot=0;
 double Mbeam= DB->fmass[m_KFini];  // electron or muon beam mass
 m_Event->DefPair(m_XXXene,Mbeam,Mbeam, &(m_Event->m_Pf1), &(m_Event->m_Pf2));
 
-m_Event->m_Rem1.SetPxPyPzE( 0, 0, 0.5*DB->CMSene*m_r1, 0.5*DB->CMSene*m_r1); //obsolete
-m_Event->m_Rem2.SetPxPyPzE( 0, 0,-0.5*DB->CMSene*m_r2, 0.5*DB->CMSene*m_r2); //obsolete
+// m_Rem1 and m_Rem2 are only for technical tests of 4-mom conservation
+m_Event->m_Rem1.SetPxPyPzE( 0, 0,-0.5*DB->CMSene*m_r1,-0.5*DB->CMSene*m_r1); // loss due to BES
+m_Event->m_Rem2.SetPxPyPzE( 0, 0, 0.5*DB->CMSene*m_r2,-0.5*DB->CMSene*m_r2); // loss due to DES
 
 m_XXf = m_Event->m_Pf1 + m_Event->m_Pf2;
 
@@ -732,8 +775,10 @@ if(m_WtCrude != 0 ) {
 // 4-momenta are transfered to QED directly through m_Event
       m_QED3->Make(); // f77 indexing!!!
       for(int j=0; j< maxWT;j++) m_WtSet[j]=m_QED3->m_WtSet[j];
-      WtBest = m_WtSet[74];   // wtset[74]
-//
+      WtBest = m_WtSet[DB->KeyEEX];   // wtset[74]
+      m_WtSetNew[1] = m_WtSet[72];
+      m_WtSetNew[2] = m_WtSet[73];
+      m_WtSetNew[3] = m_WtSet[74];
       if(m_EventCounter >= DB->Ie1Pri && m_EventCounter <= DB->Ie2Pri && DB->LevPri>0 ) {
         (*f_Out)<<"KKee2f::Generate: m_WtSet[71-74]="<<m_WtSet[71]<<"  "<<m_WtSet[72]<<"  "<<m_WtSet[73]<<"  "<<m_WtSet[74]<<endl;
         cout    <<"KKee2f::Generate: m_WtSet[71-74]="<<m_WtSet[71]<<"  "<<m_WtSet[72]<<"  "<<m_WtSet[73]<<"  "<<m_WtSet[74]<<endl;
@@ -754,14 +799,14 @@ if(m_WtCrude != 0 ) {
       m_WtSetNew[ 1]=m_GPS->m_WtSet[51];
       m_WtSetNew[ 2]=m_GPS->m_WtSet[52];
       m_WtSetNew[ 3]=m_GPS->m_WtSet[53];
-      WtBest = m_GPS->m_WtSet[53];
+      WtBest = m_GPS->m_WtSet[DB->KeyEEX-21];
       if( DB->KeyINT != 0 && m_Event->m_HasFSR != 0 ) {
         m_GPS->SetKeyInt(DB->KeyINT);
         m_GPS->Make(); // IFI ON
         m_WtSetNew[1]=m_GPS->m_WtSet[1];
         m_WtSetNew[2]=m_GPS->m_WtSet[2];
         m_WtSetNew[3]=m_GPS->m_WtSet[3];
-        WtBest = m_GPS->m_WtSet[3];
+        WtBest = m_GPS->m_WtSet[DB->KeyEEX-71];
       }// if KeyInt
 // +200 shift in the index should be better done inside gps_make() !!?
    for(int j=1; j<200;j++) m_WtSet[j+200] = m_WtSetNew[j];
@@ -779,6 +824,7 @@ if(m_EventCounter >= DB->Ie1Pri && m_EventCounter <= DB->Ie2Pri && DB->LevPri>0 
 if( m_WtCrude !=0.0 ) m_WtMain=WtBest*m_WtCrude;
 // more DEBUG
 if( std::isnan(m_WtCrude) || std::isnan(m_WtMain) ) {
+  // m_WtMain = 0;
   cout<<"+++ STOP in KKee2f::Generate:  m_EventCounter="<<m_EventCounter<<endl;
   cout<<" m_WtCrude="<<m_WtCrude<<"   m_WtMain="<<m_WtMain<<endl;
   exit(99);
@@ -807,6 +853,13 @@ if(DB->KeyWgt == 0) {
 // ***** CONSTANT-WEIGHT events *****
   double rn = f_RNgen->Rndm();
   m_WtMainMonit->Fill(m_WtMain,rn);  // monitoring main WT
+  if(DB->KeyGPS != 0){
+    for (int i = 1; i <= 3; ++i)
+    {
+      m_WtCEEXMonit[i]->Fill(m_WtSetNew[i]*m_WtCrude,rn);
+      m_Event->SetEventWeight(i,m_WtSetNew[i]/WtBest);
+    }
+  }
   f_TMCgen_NORMA->SetBinContent(0,XsPrimPb*NevPrim*WTmax);
   f_TMCgen_NORMA->SetEntries(NevPrim);
   double WtScaled = m_WtMain/WTmax;
@@ -818,11 +871,19 @@ if(DB->KeyWgt == 0) {
   m_WtCrude=1.0;
 // collection of the weights for the advanced user
   for(int j=1; j< maxWT; j++)   m_WtAlter[j] = m_WtSet[j]/WtBest;  // f77 indexing !!!!
-} else {
+} 
+else {
 // ***** VARIABLE-WEIGHT events *****
   m_WtMainMonit->Fill(m_WtMain);  // monitoring main WT
   f_TMCgen_NORMA->SetBinContent(0,XsPrimPb*NevPrim);  // Picobarns
   f_TMCgen_NORMA->SetEntries(NevPrim);
+  if(DB->KeyGPS != 0){
+    for (int i = 1; i <= 3; ++i)
+    {
+        m_WtCEEXMonit[i]->Fill(m_WtCrude*m_WtSetNew[i]);
+        m_Event->SetEventWeight(i,m_WtCrude*m_WtSetNew[i]);
+    }
+  }
 //  collection of the weights for the advanced user
   for(int j=1; j< maxWT; j++)   m_WtAlter[j] = m_WtSet[j]*m_WtCrude;  // f77 indexing !!!!
 }//KeyWgt
@@ -846,7 +907,7 @@ m_Event->ZBoostALL();
 if ( m_WtCrude  != 0) hepevt_fill_();  // Fill in /hepevt/ with four fermions and photons
 
 /////////////////////////////
-if ( m_WtCrude  != 0) m_HEPMC->WriteHEPC(); // Fill in hepmc3 m_Hvent event
+if ( m_WtCrude  != 0 && m_WtMain != 0) m_HEPMC->WriteHEPC(DB->KeyGPS==1); // Fill in hepmc3 m_Hvent event
 /////////////////////////////////////////////////////////////
 // Tau pair generation using TAUOLA and PHOTOS++
 if ( (m_WtCrude  != 0) && ( m_KFfin == 15) ) {
@@ -875,9 +936,31 @@ if(m_EventCounter >= DB->Ie1Pri && m_EventCounter <= DB->Ie2Pri && DB->LevPri>0 
    m_Event->EventPrintAll(f_Out);
 }//m_EventCounter
 
+CalculateXS();
+if (m_WtCrude != 0) {
+  // add cross section information to the hepmc3 m_Hvent event
+  std::shared_ptr<HepMC3::GenCrossSection> cs = std::make_shared<HepMC3::GenCrossSection>();
+  m_HEPMC->m_Hvent->set_cross_section(cs);
+  cs->set_cross_section(m_XsMainPb, m_XEMainPb);
+  if(DB->KeyGPS != 0){
+    for (int i = 1; i <= 3; ++i){
+      std::string name = m_WtCEEXMonit[i]->GetName();
+      const double var_xs = m_XsSet[i];
+      const double var_err = m_XsErrSet[i];
+      cs->set_xsec(name, var_xs);
+      cs->set_xsec_err(name, var_err);
+    }
+  }
+}// if m_WtCrude
+
+///////////////////////////////////////////////////////////
+//alphaQED and alphaQCD for LHE file
+m_Event->m_aQEDinv = m_xpar[30];
+m_Event->m_aQCD = m_xpar[809];   
+   
 }// Generate
 
-void KKee2f::ReaData(const char *DiskFile, int imax, double xpar[])
+void KKee2f::ReaData(const char *DiskFile, int imax, double xpar[], string *hepmc_out_name)
 //////////////////////////////////////////////////////////////
 //    subprogram reading input data file and packing        //
 //    entries into matrix xpar                              //
@@ -924,11 +1007,62 @@ void KKee2f::ReaData(const char *DiskFile, int imax, double xpar[])
       cout<<ch1;
       cout<<setw(4)<<indx<<setw(15)<<value<<" ";
       cout<<trail<<endl;
+      if (indx == 100 && value == 1) {
+        string str(trail);
+        unsigned first = str.find('(') + 1;
+        unsigned last = str.find(')');
+        *hepmc_out_name = str.substr(first,last-first);
+      }
     }
   }
   cout<<"================================================================="<<endl;
   InputFile.close();
 }// ReaData
+
+///////////////////////////////////////////////////////////////////////////////
+void KKee2f::CalculateXS()
+{
+  // The below calculations follow the KKee2f::Finalize method
+  //////////////////////////////////////////////////
+  // Returns NORMALIZATION integral from Foam
+  // ErrelF=0 in case of WTed events
+  double IntNormF, ErrelF;
+  f_FoamI->GetIntNorm(IntNormF, ErrelF);  // without printouts
+  ErrelF /= IntNormF; // from an absolute to a relative error
+  //////////////////////////////////////////////////
+  // Average weight from main program
+  double AveWt, ErrAbs, ErelWT;
+  double AveWtCeex, ErrAbsCeex, ErelWTCeex;
+  m_WtMainMonit->GetAver(AveWt, ErrAbs);  // [nb]
+  ErelWT = std::sqrt(sqr(ErrelF) + sqr(ErrAbs / AveWt));
+  // Total cross section
+  // (note: the KKee2f::Finalize method uses here IntNorm, not IntNormF)
+  m_XsMainPb = IntNormF * AveWt * 1000.0; // [pb]
+  m_XEMainPb = m_XsMainPb * ErelWT;       // [pb]
+  if(DB->KeyGPS != 0){
+    for(int j=1; j<=3;j++) {
+      m_WtCEEXMonit[j]->GetAver(AveWtCeex, ErrAbsCeex);
+      m_XsSet[j] = IntNormF*AveWtCeex*1000.0;
+      m_XsErrSet[j] = m_XsSet[j]*ErrAbsCeex;
+      // m_Event->SetEventWeight(j,m_WtCrude*m_WtSetNew[j]);
+    }
+  }
+  //////////////////////////////////////////////////
+#if 1 /* 0 or 1 */
+  int n;
+  for (n = 5; m_EventCounter / int(std::pow(10, n)) == 0; n--) {}
+  if (m_EventCounter % int(std::pow(10, n)) == 0) {
+    std::cout << "\rEvent Number: " << m_EventCounter
+              << " -> Total XS = " << m_XsMainPb
+              << " pb +- " << m_XEMainPb << " pb" << std::endl;
+  if(DB->KeyGPS!=0){
+    std::cout <<"CEEX0 XS = "<< m_XsSet[1] <<" pb +-"<< m_XsErrSet[1] << "pb"<<std::endl;
+    std::cout <<"CEEX1 XS = "<< m_XsSet[2] <<" pb +-"<< m_XsErrSet[2] << "pb"<<std::endl;
+    std::cout <<"CEEX2 XS = "<< m_XsSet[3] <<" pb +-"<< m_XsErrSet[3] << "pb"<<std::endl;
+  }
+  }
+#endif /* 0 or 1 */
+}// CalculateXS
 
 ///////////////////////////////////////////////////////////////////////////////
 void KKee2f::Finalize()
@@ -945,25 +1079,27 @@ if( m_TauGen->IsTauInitialized() != 0) {
 double XsPrimPb = f_FoamI->GetPrimary()*1000.0;
 ////////////////////////////////////////////////////
 double IntNorm, Errel;
-f_FoamI->Finalize(IntNorm, Errel );      // with printouts
-double FoamInteg,FoamErr;
-f_FoamI->GetIntegMC(FoamInteg,FoamErr);   // true Foam integral [nb]
-FoamInteg *= 1000.0;                      // [pb]
+f_FoamI->Finalize(IntNorm, Errel);       // with printouts
+double FoamInteg, FoamErr;
+f_FoamI->GetIntegMC(FoamInteg, FoamErr); // true Foam integral [nb]
+FoamInteg *= 1000.0;                     // [pb]
+FoamErr   *= 1000.0;                     // [pb]
 ///////////////////////////////////////////////////
 fort_close_(m_out);
 ///////////////////////////////////////////////////
 // Returns NORMALIZATION integral from Foam
 // ErrelF=0 in case of WTed events
 double IntNormF, ErrelF;
-f_FoamI->GetIntNorm(IntNormF, ErrelF ); // without printouts
+f_FoamI->GetIntNorm(IntNormF, ErrelF);   // without printouts
+ErrelF /= IntNormF; // from an absolute to a relative error
 ///////////////////////////////////////////////////
 // Average weight from main program
-double AveWt, ErrAbs,ErelWT;
-m_WtMainMonit->GetAver(AveWt, ErrAbs);  // [nb]
-ErelWT=ErrAbs/AveWt;
+double AveWt, ErrAbs, ErelWT;
+m_WtMainMonit->GetAver(AveWt, ErrAbs);   // [nb]
+ErelWT=sqrt(sqr(ErrelF)+sqr(ErrAbs/AveWt));
 // Total cross section
-m_XsMainPb   = IntNorm*AveWt*1000.0;    // [pb]
-m_XEMainPb   = IntNorm*sqrt(sqr(ErrelF)+sqr(ErelWT));
+m_XsMainPb   = IntNorm*AveWt*1000.0;     // [pb]
+m_XEMainPb   = m_XsMainPb*ErelWT;        // [pb]
 BOXOPE;
 BOXTXT("****************************************");
 BOXTXT("******      KKMCee::Finalize      ******");
@@ -976,7 +1112,18 @@ BOX1F(" <WtMain>",   AveWt,     " average WtMain           ");
 BOX1F("       +-",  ErrAbs,     " error abs.               ");
 BOX1F("   XsMain",m_XsMainPb,   " Xsection main [pb]       ");
 BOX1F("       +-",m_XEMainPb,   " error abs.               ");
-BOX1F("       +-",ErrAbs/AveWt, " error relative           ");
+BOX1F("       +-",ErelWT,       " error relative           ");
+if(DB->KeyGPS != 0){
+  for (int i = 1; i <=3; ++i)
+  {
+    m_WtCEEXMonit[i]->GetAver(AveWt, ErrAbs);   // [nb]
+    double erel = sqrt(sqr(ErrelF)+sqr(ErrAbs/AveWt));
+    std::string name = "  XS CEEX" + std::to_string(i);
+    BOX1F(name ,m_XsSet[i],   " Xsection main [pb]       ");
+    BOX1F("       +-",m_XsErrSet[i],   " error abs.               ");
+    BOX1F("       +-",erel,       " error relative           ");
+  }
+}
 BOXCLO;
 ///////////////////////////////////////////////////////////////////////////////
 double ERela, WtMax, WtMin, AvUnd, AvOve,
@@ -1000,7 +1147,7 @@ BX1F(*f_Out," <WtMain>",   AveWt,     " average WtMain           ");
 BX1F(*f_Out,"       +-",  ErrAbs,     " error abs.               ");
 BX1F(*f_Out,"   XsMain",m_XsMainPb,   " Xsection main [pb]       ");
 BX1F(*f_Out,"       +-",m_XEMainPb,   " error absolute           ");
-BX1F(*f_Out,"       +-",ErrAbs/AveWt, " error relative           ");
+BX1F(*f_Out,"       +-",ErelWT,       " error relative           ");
 BXTXT(*f_Out,"********** More from WtMainMonit *******");
 BX1F(*f_Out,"    AveWt",   AveWt,     " average <WtMain>         ");
 BX1F(*f_Out,"    ERela",   ERela,     " relative error           ");

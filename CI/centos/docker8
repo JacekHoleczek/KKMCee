@@ -1,0 +1,8 @@
+FROM gitlab-registry.cern.ch/linuxsupport/rpmci/builder-cs8
+RUN  yum -y  install  dnf-plugins-core --exclude=*uploa* --exclude=*product* --exclude=*subscr*    epel*
+RUN  yum -y  install  bc make binutils git wget diffutils file sed gawk grep which autoconf automake libtool \
+                      gcc-gfortran gcc-c++ clang bzip2 \
+                      root root-physics root-mathcore root-mathmore root-matrix root-genvector root-foam \
+                      HepMC3-rootIO-devel HepMC3-devel HepMC3-search HepMC3-search-devel  HepMC3-rootIO HepMC3  HepMC python3  &&  yum -y  clean all
+#Packages coming from HEPrpms ->
+RUN  dnf -y copr enable averbyts/HEPrpms && yum -y  install fastjet YODA TAUOLA Rivet PHOTOS   --nobest &&  yum -y  clean all

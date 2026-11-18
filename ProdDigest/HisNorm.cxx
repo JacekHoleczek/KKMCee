@@ -889,8 +889,8 @@ void PlTable2(int Ncol, TH1D *iHst[], FILE *ltex, Char_t *Capt[], Char_t Mcapt[]
 	  //           Header
 	  //------------------------------!
 	  fprintf(ltex," \n");
-	  fprintf(ltex,"% ========================================\n");
-	  fprintf(ltex,"% ============ begin table ===============\n");
+	  fprintf(ltex,"%% ========================================\n");
+	  fprintf(ltex,"%% ============ begin table ===============\n");
 	  //
 //[[[	  if (abs(m_lint) == 2 ){
 	      fprintf(ltex,"\\noindent\n");
@@ -956,8 +956,8 @@ void PlTable2(int Ncol, TH1D *iHst[], FILE *ltex, Char_t *Capt[], Char_t Mcapt[]
   //------------------------------!
   if( chr1 == " " || chr1 == "E"){
 	  fprintf(ltex,"\\end{tabular}\n");
-	  fprintf(ltex,"% ============ end   table ===============\n");
-	  fprintf(ltex,"% ========================================\n");
+	  fprintf(ltex,"%% ============ end   table ===============\n");
+	  fprintf(ltex,"%% ========================================\n");
 	  fprintf(ltex," \n");
   }//chr1
 

@@ -50,8 +50,9 @@ class TWtMon : public TObject{
                double&,  double&,  double&,  double&,  double&);
   void PrintAll();
   void PrintLine();
+  inline std::string GetName() {return m_HST->GetName();}
 ////////////////////////////////////////////////////////////////////////////
-  ClassDef(TWtMon,1); // Info class for html documentation
+  ClassDef(TWtMon,2); // Info class for html documentation
 };
 /////////////////////////////////////////////////////////////////////////////
 #endif

@@ -44,7 +44,7 @@ TMCgen::TMCgen(const char* Name){
 //! by the user before calling TMCgen::Initialize
 
   cout<< "====> TMCgen::TMCgen USER Constructor in MCdev"<<endl;
-  if(strlen(Name)  >65) {
+  if(strlen(Name) >= sizeof(f_Name)) {
     cout<< " ++++STOP in TMCgen::TMCgen, Name too long "<<strlen(Name)<<endl;
     exit(2);
   }
@@ -74,7 +74,7 @@ TMCgen::TMCgen(const char* Name, const char* Date, double Version){
 //! by the user before calling TMCgen::Initialize
 
   cout<< "====> TMCgen::TMCgen USER Constructor in MCdev"<<endl;
-  if(strlen(Name)  >65 || strlen(Date) > 30 ) {
+  if(strlen(Name) >= sizeof(f_Name) || strlen(Date) >= sizeof(f_Date) ) {
     cout<< " ++++STOP in TMCgen::TMCgen, Name or date too long "<<strlen(Name)<<endl; exit(2);
   }
   sprintf(f_Name,"%s",Name);         // Class name

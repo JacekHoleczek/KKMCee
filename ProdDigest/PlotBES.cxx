@@ -53,7 +53,7 @@ void HistNormalize(){
   HisNorm1(HST_KKMC_NORMA, (TH1D*)DiskFileA.Get("hst_vvBES") );
   HisNorm1(HST_KKMC_NORMA, (TH1D*)DiskFileA.Get("hst_CosTheta") );
   //
-  //HisNorm2(HST_KKMC_NORMA, (TH2D*)DiskFileA.Get("sca_r1r2") );
+  HisNorm2(HST_KKMC_NORMA, (TH2D*)DiskFileA.Get("sca_r1r2") );
   //
   cout<<"----------------DiskFileA.GetListOfKeys--------------------"<<endl;
   DiskFileA.GetListOfKeys()->Print();

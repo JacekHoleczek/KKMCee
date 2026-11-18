@@ -30,6 +30,8 @@ HepFace::HepFace()
   m_Out= NULL;
   m_Event=NULL;
   m_Hvent=NULL;
+  set_run_info=false;
+  m_count = 0;
 }
 
 ///_____________________________________________________________
@@ -39,6 +41,8 @@ HepFace::HepFace(ofstream *OutFile)
   m_Out = OutFile;
   m_Event=NULL;
   m_Hvent=NULL;
+  set_run_info=false;
+  m_count = 0;
 }//HepFace
 
 ///______________________________________________________________________________________
@@ -64,10 +68,11 @@ void HepFace::Initialize()
   // clear tau container
   m_tauMdecay.clear();
   m_tauPdecay.clear();
+  m_count=0;
 }// Initialize
 
 ///______________________________________________________________________________________
-void HepFace::WriteHEPC()
+void HepFace::WriteHEPC(const bool &multiwgt)
 {
 /////////////////////////////////////////////////////////////////////////////////////////
 // This function fills in HEPMC3 event record with the initial beams,
@@ -76,10 +81,19 @@ void HepFace::WriteHEPC()
 // with the individual fermions is unphysical and should not be treated seriously.
 /////////////////////////////////////////////////////////////////////////////////////////
   m_Hvent->clear();
+  m_Hvent->set_event_number(m_count);
+  if(!set_run_info){
+    std::shared_ptr<GenRunInfo> runinfo = std::make_shared<GenRunInfo>();
+    if(multiwgt) runinfo->set_weight_names({"Weight", "CEEX0", "CEEX1", "CEEX2"});
+    else runinfo->set_weight_names({"Weight"});
+    m_Hvent->set_run_info(runinfo);
+    set_run_info = true;
+  }
 // status of outgoing fermions
   int status=1;                                 // stable mu, neutrina
   if(abs(m_Event->m_KFfin)==15) status=1;       // instable tau
   if(abs(m_Event->m_KFfin) >= 1 && abs(m_Event->m_KFfin)  < 5) status=1; // quarks
+  // if(m_Event->m_WtMain == 0) return;
 //----------------------------------
 // beam particles  
   FourVector pe1_v4( Vect4( m_Event->m_Pf1) );
@@ -89,92 +103,64 @@ void HepFace::WriteHEPC()
   GenParticlePtr pe2 = std::make_shared<GenParticle>( pe2_v4, - m_Event->m_KFini, 4); // - PDG id antifermion 
   pe1->set_generated_mass(pe1_v4.m());
   pe2->set_generated_mass(pe2_v4.m());
-
-
 //-----------------------------------
-// ISR photons:
-  for(int i=1; i <= m_Event->m_nPhotISR; ++i){
-      // create a HEPMC photon
-      FourVector tmp_photon_v4=Vect4(m_Event->m_PhotISR[i]);
-      GenParticlePtr tmp_photon=std::make_shared<GenParticle>( tmp_photon_v4, 22,1);
-      tmp_photon->set_generated_mass(tmp_photon_v4.m());
-      // assign from which electron the photon was emmited 
-      // check which electron is closer to the photon
-      double scalar1= m_Event->m_Pf1 * m_Event->m_PhotISR[i]; // iloczyn skalarny TLorentzvector
-      double scalar2= m_Event->m_Pf2 * m_Event->m_PhotISR[i]; // iloczyn skalarny TLorentzvector
-      // electrons after the emission of the photon - change of kinematics 	
-      GenParticlePtr e1STAR = std::make_shared<GenParticle>( pe1_v4-tmp_photon_v4, m_Event->m_KFini, 2); 
-      GenParticlePtr e2STAR = std::make_shared<GenParticle>( pe2_v4-tmp_photon_v4, - m_Event->m_KFini, 2); // - PDG id antifermion 
-      // create a vertex with the selected electron	
-      GenVertexPtr v_tmp = std::make_shared<GenVertex>();
-      if( scalar1 < scalar2){
-          v_tmp->add_particle_out(e1STAR);
-          v_tmp->add_particle_in(pe1);	  
-          pe1=e1STAR;
-          pe1_v4=e1STAR->data().momentum;
-      }else{
-          v_tmp->add_particle_out(e2STAR);
-          v_tmp->add_particle_in(pe2); 
-          pe2=e2STAR;
-          pe2_v4=e2STAR->data().momentum;
-      }//if else
-      v_tmp->add_particle_out(tmp_photon);
-      m_Hvent->add_vertex(v_tmp);
-    } // End ISR photons
-// intermediate Z bozon:
-  GenParticlePtr pZ = std::make_shared<GenParticle>( pe2_v4 + pe1_v4 , 23,  2);
-  pZ->set_generated_mass((pe2_v4+pe1_v4).m());
-  GenVertexPtr vZ =  std::make_shared<GenVertex>();  
-  vZ ->add_particle_in(pe1);
-  vZ ->add_particle_in(pe2);
-  vZ ->add_particle_out(pZ);
-  m_Hvent->add_vertex(vZ);
-//-------------------------------------------------------------
-// FSR photons:
-  // we will start from final state fermions
-  FourVector pe3_v4( Vect4( m_Event->m_Qf1) );
-  FourVector pe4_v4( Vect4( m_Event->m_Qf2) );
-  GenParticlePtr pe3 = std::make_shared<GenParticle>( pe3_v4, m_Event->m_KFfin, status);
-  GenParticlePtr pe4 = std::make_shared<GenParticle>( pe4_v4, - m_Event->m_KFfin, status);
-  pe3->set_generated_mass(pe3_v4.m());
-  pe4->set_generated_mass(pe4_v4.m());
+// We construct one vertex with incoming electrons and  
+// outgoing FSR and ISR photons and fermions 
+  GenVertexPtr vertex = std::make_shared<GenVertex>();
+// add incoming electrons to the vertex
+  vertex->add_particle_in(pe1);
+  vertex->add_particle_in(pe2);
 
+// adding the ISR photons to vertex:
+  for(int i=1; i <= m_Event->m_nPhotISR; ++i)
+  {
+      FourVector tmp_photon_v4=Vect4(m_Event->m_PhotISR[i]);
+      GenParticlePtr tmp_photon=std::make_shared<GenParticle>(tmp_photon_v4, 22,1);
+      tmp_photon->set_generated_mass(tmp_photon_v4.m());
+      vertex->add_particle_out(tmp_photon);
+  }
 
   for(int i=1; i<= m_Event->m_nPhotFSR; i++){
       // create a HEPMC photon
       FourVector tmp_photon_v4=FourVector(Vect4(m_Event->m_PhotFSR[i]));
       GenParticlePtr tmp_photon=std::make_shared<GenParticle>( tmp_photon_v4, 22, 1);
       tmp_photon->set_generated_mass(tmp_photon_v4.m());
-      // assign from which electron the photon was emmited 
-      // check which electron is more parallel to the photon
-      double scalar3= m_Event->m_PhotFSR[i] * m_Event->m_Qf1;
-      double scalar4= m_Event->m_PhotFSR[i] * m_Event->m_Qf2;
-      // electrons before the emission of the photon - change of kinematics
-      GenParticlePtr e3STAR = std::make_shared<GenParticle>( pe3_v4+tmp_photon_v4, m_Event->m_KFfin, 2);	
-      GenParticlePtr e4STAR = std::make_shared<GenParticle>( pe4_v4+tmp_photon_v4, - m_Event->m_KFfin, 2);
-      
-      // create a vertex with the selected electron     
-      GenVertexPtr v_tmp = std::make_shared<GenVertex>();
-      if( scalar3 < scalar4){
-          v_tmp->add_particle_in(e3STAR); 
-          v_tmp->add_particle_out(pe3);
-          pe3=e3STAR;
-          pe3_v4=e3STAR->data().momentum;
-      } else {
-          v_tmp->add_particle_in(e4STAR);
-          v_tmp->add_particle_out(pe4);
-          pe4=e4STAR;
-          pe4_v4=e4STAR->data().momentum;
-      }// if else
-      v_tmp->add_particle_out(tmp_photon);
-      m_Hvent->add_vertex(v_tmp);
-  }// for i
-// now decaying Z:
-  GenVertexPtr vZ2 =  std::make_shared<GenVertex>();
-  vZ2 ->add_particle_in(pZ);
-  vZ2->add_particle_out(pe3);
-  vZ2->add_particle_out(pe4);
-  m_Hvent->add_vertex(vZ2);
+      vertex->add_particle_out(tmp_photon);
+  }
+
+
+//-------------------------------------------------------------
+// FSR photons:
+// we will start from final state fermions
+  FourVector pQ3_v4( Vect4( m_Event->m_Qf1) );
+  FourVector pQ4_v4( Vect4( m_Event->m_Qf2) );
+  GenParticlePtr pQ3 = std::make_shared<GenParticle>( pQ3_v4, m_Event->m_KFfin, status);
+  GenParticlePtr pQ4 = std::make_shared<GenParticle>( pQ4_v4, - m_Event->m_KFfin, status);
+  pQ3->set_generated_mass(pQ3_v4.m());
+  pQ4->set_generated_mass(pQ4_v4.m());
+
+  vertex->add_particle_out(pQ3);
+  vertex->add_particle_out(pQ4);
+
+  m_Hvent->add_vertex(vertex);
+  WeightContainer wc;
+  wc["Weight"]=m_Event->m_WtMain;
+  if(multiwgt){
+    wc["CEEX0"]=m_Event->m_WtEvent[1];
+    wc["CEEX1"]=m_Event->m_WtEvent[2];
+    wc["CEEX2"]=m_Event->m_WtEvent[3];
+  }
+  std::vector<std::string> names;
+  std::vector<double> values;
+  for (auto it = wc.begin(); it != wc.end(); ++it)
+  { names.push_back(it->first); values.push_back(it->second);}
+  if(names.size()!=values.size()) {
+    cout<<"Error: Mismatch between weight names and values\n"
+        <<"Size of Name vec: "<<names.size()<<std::endl
+        <<"Size of Value vec: "<<values.size()<<std::endl;
+  }
+  m_Hvent->weights()=values;
+  m_count++;
 }//WriteHEPC
 
 

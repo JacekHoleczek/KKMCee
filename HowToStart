@@ -21,9 +21,19 @@ Building the project
         --with-hepmc=/opt/hepmc3-install
         --with-photos=/opt/PHOTOS-install
      make
-     
-Locations of the external \hepmc3 and \photospp\ libraries must be provided
+Locations of the external \hepmc3 and \photospp\ libraries provided
 explicitly in the configure parameters.
+
+Under CernVM the following simple command sequence builds the project:
+     ln -s dizet-6.45 dizet
+     autoreconf -i --force
+     ./configure
+     make
+
+For installation instruction of CernVM virtual machine with 
+the CENTOS 7 system  see section 1.1.3.2 on the following webpage:
+https://hep-fcc.github.io/fcc-tutorials/software-basics/README.html
+
 
 Running a simple example
 ========================
@@ -62,6 +72,11 @@ Archive histogram files can be replaced in the source code
 by files from the actual run. For instance one may uncomment
 in Plot1.cxx input data file ProdRun/work1/histo.root
 or ProdRun/workTau/histo.root file in PlotTau.cxx
+
+For beam energy spread (BES) studies a template demo program
+ProdRun/MainBES.cxx is now added. To be run as follows:
+     cd ProdRun/workBES
+     make start
 
 Example of preparing/running 24 batch jobs on the PC farm
 =========================================================

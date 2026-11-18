@@ -122,7 +122,7 @@ void KKceex::Initialize()
 //     Define Pauli matrices
   for(int k = 0; k<=3; k++)
      for(int j1=0; j1<=1; j1++)
-        for(int j2 = 1; j2<=1; j2++)
+        for(int j2 = 0; j2<=1; j2++)
            m_Pauli[ k][j1][j2] = dcmplx(0.0,0.0);
 // Sigma0
   m_Pauli[ 0][0][0] = dcmplx( 1.0, 0.0);
@@ -1083,8 +1083,6 @@ return Sum0;
 }//MakeRho
 
 
-
-
 void KKceex::MakeRho2(double h1[], double h2[], double &wt0, double &wt1, double &wt2){
 //////////////////////////////////////////////////////////////////////////////////
 //                                                                              //
@@ -1139,7 +1137,6 @@ void KKceex::MakeRho2(double h1[], double h2[], double &wt0, double &wt1, double
   wt1 = Rho1/m_RhoExp1;
   wt2 = Rho2/m_RhoExp2;
 }// GPS_MakeRho2
-
 
 
 void KKceex::HiniPlus(int KFini, int KFfin, TLorentzVector &PX,
@@ -3657,9 +3654,15 @@ if( KTO ==1){
 //   cout<<"p[xyzt]= "; cout<<" "<<p.X()<<" "<<p.Y()<<" "<<p.Z()<<" "<<p.T()<<endl;
 //   q=p; q.Boost(b1);
  //  cout<<"q[o123]= "; cout<<" "<<q.X()<<" "<<q.Y()<<" "<<q.Z()<<" "<<q.T()<<endl;
-} else {
+} else if( KTO ==2){
    q = m_TraLor2 * p; // transform
 //   q=p; q.Boost(b2);
+} else if(KTO==-1){
+   q = m_TraLin1 * p; // transform back
+} else if(KTO==-2){
+   q = m_TraLin2 * p; // transform back
+} else {
+   cout<<"Kceex::TralorDoIt: Wrong KTO"<<endl; exit(90);
 }
 //
 for(int i=0; i<=3;i++) Q[i]=q[i];

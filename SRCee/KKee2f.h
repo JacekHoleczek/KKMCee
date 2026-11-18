@@ -1,14 +1,17 @@
 #ifndef KKee2f_H
 #define KKee2f_H
 
-#include <stdlib.h>
-#include <math.h>
+#include <cstdlib>
+#include <cmath>
 #include <complex>
-using namespace std;
 
 #include <iostream>
 #include <fstream>
 #include <iomanip>
+#include <string>
+
+#include <memory>
+
 using namespace std;
 
 #include "TString.h"
@@ -36,6 +39,7 @@ using namespace std;
 #include "TWtMon.h"
 
 #include "HepMC3/GenEvent.h"
+#include "HepMC3/GenCrossSection.h"
 using namespace HepMC3;
 
 class KKee2f: public TMCgen{
@@ -54,6 +58,7 @@ class KKee2f: public TMCgen{
  KKlasa  *m_KKexamp;              // Template for new class
  KKevent  *m_Event;               // MC event ISR+FSR in KKMC format
  GenEvent *m_Hvent;               //! HEPMC3 event (no persistency!)
+ TWtMon   *m_WtCEEXMonit[4];       // Monitoring WTCEEX
 
 // Dimensionality
  static const int maxPar  = 10001;    // max. num. KKMC parameters +1
@@ -67,6 +72,8 @@ class KKee2f: public TMCgen{
  double   m_ypar[maxPar];     //   xpar input parameters of KKMC, c++ indexing
  double   m_xpar[maxPar];     //   xpar input parameters of KKMC, f77 indexing
  long     m_out;              //   output unit number for f77
+ string   hepmc_out_name;
+ bool     save_to_hepmc;
 // Seeds for Pseumar r.n. in KKMC
  int      m_ijkl_new;         // = 54217137;
  int      m_ntot_new;         // = 0;
@@ -105,12 +112,16 @@ class KKee2f: public TMCgen{
   double   m_WtSet[maxWT];           // list of alternative weights f77 indexing
   double   m_WtSetNew[maxWT];         // list of alternative weights f77 indexing
   double   m_WtAlter[maxWT];          // list of alternative weights f77 indexing
+  double   m_XsSet[maxWT];            // list of xs for each weight in WtSet
+  double   m_XsErrSet[maxWT];          // list of xs err for each weight in WtSet
   double   m_WtMain;                  // Main weight
   double   m_WtCrude;                 // Crude weight
   double   m_WtFoam;                  // Foam weight
 //-------------------------------------------
   double   m_XsMainPb;
   double   m_XEMainPb;
+ private:
+  double (*m_UserBESdist)(const double &Ebeam1, const double &Ebeam2, const double m_ParBES[]); //! (transient data member)
  public:
  KKee2f();                // explicit default constructor for streamer
  KKee2f(const char*);     // user constructor
@@ -124,24 +135,30 @@ class KKee2f: public TMCgen{
   //
   void   Initialize(TRandom*, ofstream*, TH1D*);
 
-  void   ReaData(const char *DiskFile, int imax, double xpar[]);
+  void   ReaData(const char *DiskFile, int imax, double xpar[], string *hepmc_out_name);
 
   void   InitParams();
   void   FoamInitA();
 
   double Density(int, Double_t*);
   double RhoFoam5(double *Xarg);
+  double BESdist(const double &Ebeam1, const double &Ebeam2, const double ParBES[]);
 
   void   MakeGami(int KFini, double CMSene, double &gamiCR, double &gami, double &alfi);
   double RhoISRold(double vv, double CMSene);
   void   MapPlus( double r, double gam, double vvmax, double &v, double &dJac);
 
+  void   CalculateXS();
+
   void   Generate();
   void   Finalize();
 
   void   Redress(TRandom *RNgen, ofstream *OutFile, TH1D* h_NORMA);
+
+  void SetUserBESdist(double (*f)(const double &Ebeam1, const double &Ebeam2, const double m_ParBES[]) = 0)
+       { m_UserBESdist = f; }
   ////////////////////////////////////////////////////////////////////////////
-      ClassDef(KKee2f,2); // Monte Carlo generator
+      ClassDef(KKee2f,3); // Monte Carlo generator
   };
   ////////////////////////////////////////////////////////////////////////////
   #endif

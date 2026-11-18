@@ -145,6 +145,7 @@ void TauPair::RandRotor(){
   m_beta2  = acos(2.0*rrr[0]-1.0);   // polar angle     in (0,  pi)
   m_gamma2 = 2.0*M_PI*rrr[1];        // azimuthal angle in (0,2*pi)
 //------------------------------------------------
+/////////////////////////////////////////////////////////////////////////////////////
   m_H1.SetPxPyPzE(m_HvecTau1[0],m_HvecTau1[1],m_HvecTau1[2],m_HvecTau1[3]);
   m_H2.SetPxPyPzE(m_HvecTau2[0],m_HvecTau2[1],m_HvecTau2[2],m_HvecTau2[3]);
   if(m_KeyClone == 1) {
@@ -190,9 +191,124 @@ e1099:
   loop=loop+1;
   RandRotor();   // Cloning tau decay by Euler rotation
   m_GPS->MakeRho2(m_HvClone1,m_HvClone2,wt0,wt1,wt2);
-  wt = wt1;                         // why not wt2???
+  //  wt = wt0;   // CEEX0 level
+  wt = wt1;   // CEEX1 level    : why not wt2??? This used to be fixed like that.
+  // wt = wt2;   // CEEX2 level : ZbW  best choice. But: complete checks first, make link to CEEX keys later.
+
   rn = m_RNgen->Rndm();
-  if (wt < wtmax*rn  && loop<100) goto e1099;
+  if (wt < wtmax*rn  && loop<100) goto e1099; // ZBW: to get unpolarizwd sample but with wts comment line out
+  // Save polarimetric information in the HepMC3 record as particle (Tau, Tau-) attributes
+  int heltp,heltm;   // approximations of helicities
+  double wtw[4];     // weight for 4 helicity states
+  double one=0.99999;
+  float PP1[4],PP2[4];
+  PP1[0]=0.0; PP1[1]=0.0; PP1[2]=0.0; PP1[3]=1.0;
+  PP2[0]=0.0; PP2[1]=0.0; PP2[2]=0.0; PP2[3]=1.0;
+  float AM1, AM2;
+  TauPair::Tralo4(-1,&PP1[0],&PP1[0],AM1);
+  TauPair::Tralo4(-2,&PP2[0],&PP2[0],AM2);
+  PP1[3]=0.0;PP2[3]=0.0;
+  double norm1=-1*sqrt(PP1[0]*PP1[0]+PP1[1]*PP1[1]+PP1[2]*PP1[2]);
+  double norm2=-1*sqrt(PP2[0]*PP2[0]+PP2[1]*PP2[1]+PP2[2]*PP2[2]);
+  for (auto& x : PP1) x /= norm1;
+  for (auto& x : PP2) x /= norm2;
+  int chiral=1; // if chiral=0 then  z component  (kkmc internal frames) is used only, polarimetric vectors are set to (0,0,1)
+                // if chiral=1 then vectors along tau directions are used; that means chirality
+  if(chiral==0){
+    PP1[0]=0.0;PP1[1]=0.0;PP1[2]=1.0;
+    PP2[0]=0.0;PP2[1]=0.0;PP2[2]=1.0;
+  }
+
+  // cout<<"PP1= ("<<PP1[0]<<", "<<PP1[1]<<", "<<PP1[2]<<", "<<PP1[3]<<")"<<endl;
+  // cout<<"PP2= ("<<PP2[0]<<", "<<PP2[1]<<", "<<PP2[2]<<", "<<PP2[3]<<")"<<endl;
+  // cout<<endl;
+
+  double a,b,c,HH1[4],HH2[4]; // local variables for extra MakeRho2 calls with approx.
+                              // we remove transverse components and shift helicity signs to HH1,HH2
+                              // formally they should be placed in R_ij matrix.
+
+  double HvCloneXPP1 = m_HvClone1[0]*PP1[0] + m_HvClone1[1]*PP1[1] + m_HvClone1[2]*PP1[2];
+  double HvCloneXPP2 = m_HvClone2[0]*PP2[0] + m_HvClone2[1]*PP2[1] + m_HvClone2[2]*PP2[2];
+
+  HH1[0]=-one*PP1[0]; HH1[1]=-one*PP1[1]; HH1[2]=-one*PP1[2];HH1[3]=1.0;
+  HH2[0]=-one*PP2[0]; HH2[1]=-one*PP2[1]; HH2[2]=-one*PP2[2];HH2[3]=1.0;
+  m_GPS->MakeRho2(HH1,HH2,a,b,c);
+  wtw[0]=b*(1-HvCloneXPP1)*(1-HvCloneXPP2);
+
+  HH1[0]=-one*PP1[0]; HH1[1]=-one*PP1[1]; HH1[2]=-one*PP1[2];HH1[3]=1.0;
+  HH2[0]= one*PP2[0]; HH2[1]= one*PP2[1]; HH2[2]= one*PP2[2];HH2[3]=1.0;
+  m_GPS->MakeRho2(HH1,HH2,a,b,c);
+  wtw[1]=b*(1-HvCloneXPP1)*(1+HvCloneXPP2);
+
+  HH1[0]= one*PP1[0]; HH1[1]= one*PP1[1]; HH1[2]= one*PP1[2];HH1[3]=1.0;
+  HH2[0]=-one*PP2[0]; HH2[1]=-one*PP2[1]; HH2[2]=-one*PP2[2];HH2[3]=1.0;
+  m_GPS->MakeRho2(HH1,HH2,a,b,c);
+  wtw[2]=b*(1+HvCloneXPP1)*(1-HvCloneXPP2);
+
+  HH1[0]= one*PP1[0]; HH1[1]= one*PP1[1]; HH1[2]= one*PP1[2];HH1[3]=1.0;
+  HH2[0]= one*PP2[0]; HH2[1]= one*PP2[1]; HH2[2]= one*PP2[2];HH2[3]=1.0;
+  m_GPS->MakeRho2(HH1,HH2,a,b,c);
+  wtw[3]=b*(1+HvCloneXPP1)*(1+HvCloneXPP2);
+
+  double wts=wtw[0]+wtw[1]+wtw[2]+wtw[3];  // normalize
+  wtw[0]=wtw[0]/wts;wtw[1]=wtw[0]+wtw[1]/wts;wtw[2]=wtw[1]+wtw[2]/wts;wtw[3]=wtw[2]+wtw[3]/wts;
+
+  double rndm;       // new random number
+  rndm =m_RNgen->Rndm();
+  heltp = 0; heltm = 0; // set the "default" values
+  if(rndm<wtw[0]){heltp=-1;heltm=-1;}   //attribute approx helicities. Signs need to be fixed.
+  else if(rndm<wtw[1]){heltp=-1;heltm= 1;}
+  else if(rndm<wtw[2]){heltp= 1;heltm=-1;}
+  else if(rndm<wtw[3]){heltp= 1;heltm= 1;}
+
+  if (m_Hvent) {
+    std::vector<float> plrm;
+    float AM;
+    m_Hvent->add_attribute("SpinWT", std::make_shared<FloatAttribute>(wt));
+    m_Hvent->add_attribute("SpinWThelApprox", std::make_shared<FloatAttribute>(wts/4.0));
+    for (auto p: m_Hvent->particles()){
+      if (p->pid() == 15){ // Tau-
+        plrm.clear(); for(int i=0; i<4;i++) plrm.push_back(m_HvecTau1[i]);
+        int ii=1;
+        if(plrm[3]>1.0001 || plrm[3]< 0.9999){
+           cout <<"HvecTau1 incomplete/wrong =  "<< plrm[0]<<" "<< plrm[1]<<" "<< plrm[2]<<" "<< plrm[3]<<endl;
+           cout <<"Warning from TauPair::ImprintSpin(). Local variable plrm[3] set to 1   "<<endl;
+           plrm[3]=1.0;
+        }
+        TauPair::Tralo4(ii,&plrm[0], &plrm[0],AM);
+        // Create attribute
+        p->add_attribute("approximateHelicity", std::make_shared<IntAttribute>(heltp));
+        p->add_attribute("polarimetricInLabFrame", std::make_shared<VectorFloatAttribute>(plrm));
+        if(m_Event->m_EventCounter >= DB->Ie1Pri && m_Event->m_EventCounter <= DB->Ie2Pri && DB->LevPri>2 ) {
+           cout     << "TauPair::ImprintSpin: Tau- with helicity " << heltp << " and polarimetric in lab: "
+                    << plrm[0] << " " << plrm[1] << " " << plrm[2] << " " << plrm[3] << endl;
+           (*m_Out) << "TauPair::ImprintSpin: Tau- with helicity " << heltp << " and polarimetric in lab: "
+                    << plrm[0] << " " << plrm[1] << " " << plrm[2] << " " << plrm[3] << endl;
+        }
+      } else if (p->pid() == -15){ // Tau+
+        plrm.clear(); for(int i=0; i<4;i++) plrm.push_back(m_HvecTau2[i]);
+        int ii=2;
+        if(plrm[3]>1.0001 || plrm[3]< 0.9999){
+           cout <<"HvecTau2 incomplete/wrong =  "<< plrm[0]<<" "<< plrm[1]<<" "<< plrm[2]<<" "<< plrm[3]<<endl;
+           cout <<"Warning from TauPair::ImprintSpin(). Local variable plrm[3] set to 1   "<<endl;
+           plrm[3]=1.0;
+        }
+        TauPair::Tralo4(ii,&plrm[0], &plrm[0],AM);
+        // Create attribute
+        p->add_attribute("approximateHelicity", std::make_shared<IntAttribute>(heltm));
+        p->add_attribute("polarimetricInLabFrame", std::make_shared<VectorFloatAttribute>(plrm));
+        if(m_Event->m_EventCounter >= DB->Ie1Pri && m_Event->m_EventCounter <= DB->Ie2Pri && DB->LevPri>2 ) {
+           cout     << "TauPair::ImprintSpin: Tau+ with helicity " << heltm << " and polarimetric in lab: "
+                    << plrm[0] << " " << plrm[1] << " " << plrm[2] << " " << plrm[3] << endl;
+           (*m_Out) << "TauPair::ImprintSpin: Tau+ with helicity " << heltm << " and polarimetric in lab: "
+                    << plrm[0] << " " << plrm[1] << " " << plrm[2] << " " << plrm[3] << endl;
+        }
+      }
+    }// end loop over particles
+  } else {
+     cout << "m_Hvent not defined! Cannot save polarimetric information" << endl;
+  }
+
 }//ImprintSpin
 
 ///______________________________________________________________________________________
@@ -222,8 +338,7 @@ void TauPair::RunPhotosPP(){
 
 // test print before photos
   int buf= -m_Hvent->particles().size();
-  int LimitPrint=50; // for debug only
-  if(m_Event->m_EventCounter <= LimitPrint && DB->LevPri==3){
+  if(m_Event->m_EventCounter >= DB->Ie1Pri && m_Event->m_EventCounter <= DB->Ie2Pri && DB->LevPri>2 ) {
 // test print before photos
     cout <<    "TauPair::RunPhotosPP:!!!!!!!!!!!!!!!!!!!!!!!!!! Before Photos !!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
     (*m_Out) <<"TauPair::RunPhotosPP:!!!!!!!!!!!!!!!!!!!!!!!!!! Before Photos !!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
@@ -263,7 +378,7 @@ void TauPair::RunPhotosPP(){
 
   // test print after photos
   buf += m_Hvent->particles().size();
-  if(buf>0 && m_Event->m_EventCounter <= LimitPrint && DB->LevPri==3){
+  if(m_Event->m_EventCounter >= DB->Ie1Pri && m_Event->m_EventCounter <= DB->Ie2Pri && DB->LevPri>2 && buf>0 ) {
     cout<<      "TauPair::RunPhotosPP:!!!!!!!!!!!!!!!!!!!!!!!!!! After Photos !!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
     (*m_Out) << "TauPair::RunPhotosPP:!!!!!!!!!!!!!!!!!!!!!!!!!! After Photos !!!!!!!!!!!!!!!!!!!!!!!!!!!!"<<endl;
     Print::listing(*m_Hvent);
@@ -319,9 +434,9 @@ if(m_KeyClone == 1) {
    for(int i=0; i<4;i++) Pd[i]=m_PP[i];
 } else if(m_KeyClone == 2) {
    m_PP.SetPxPyPzE(Pd[0],Pd[1],Pd[2],Pd[3]);
-   if(     Kto == 1) {
+   if( abs(Kto) == 1) {
      m_Event->RotEuler(m_alfa1, m_beta1, m_gamma1, &m_PP);
-   } else if( Kto == 2) {
+   } else if( abs(Kto) == 2) {
      m_Event->RotEuler(m_alfa2, m_beta2, m_gamma2, &m_PP);
    } else {
    (*m_Out)<<"###### STOP in TauPair::Tralo4: Wrong Kto = "<<Kto<<endl;

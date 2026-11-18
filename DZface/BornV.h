@@ -35,7 +35,7 @@
       INTEGER            m_KeyElw,      m_KeyZet,  m_KeyWtm,   m_KeyFSR
       INTEGER            m_out,         m_ibox
 *[[[ NEW!!!
-      INTEGER            m_AntiQ, m_FoamMode
+      INTEGER            m_AntiQ, m_FoamMode, m_4Bytes
 
       COMMON /c_BornV/
      $  m_CMSene,                       ! Initial value of CMS energy
@@ -93,6 +93,7 @@
 *[[[ NEW!!!
      $  m_FoamMode,                     ! Foam density control <0 for generation
      $  m_AntiQ,                        ! =1 if initial antiquark
+     $  m_4Bytes,                       ! padding of 4 bytes required before m_xpar_input
      $  m_xpar_input(10000)
       SAVE /c_BornV/
 *

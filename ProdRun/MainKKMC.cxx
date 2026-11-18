@@ -10,19 +10,29 @@ using namespace std;
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include <math.h>
+#include <cmath>
 
 // ROOT headers
-#include "TROOT.h"
+#include "TApplication.h"
 #include "TFile.h"
 
 // OUR headers
 #include "TSemaf.h"
 #include "TRobol.h"
-#include "TSystem.h"
 
-int main()
+#include "TRobolKKMC.h"
+
+int main(int argc, char **argv)
 {
+  //++++++++++++++++++++++++++++++++++++++++
+  {
+    // make sure that the autoloading of ROOT libraries works
+    TApplication *a = new TApplication("MainKKMC", &argc, argv); a = a;
+    // make sure that the corresponding shared libraries are "required"
+    const char *c = TSemaf::Class_Name(); c = c;
+    c = TRobolKKMC::Class_Name(); c = c;
+  }
+  //++++++++++++++++++++++++++++++++++++++++
   TFile *HistoFile = new TFile("histo.root","UPDATE","histograms");
   TFile *MCgenFile = new TFile("mcgen.root","UPDATE","Generators");
 //  cout<<"------------------------------MCgenFile->ls----------------------------------"<<endl;
@@ -33,8 +43,6 @@ int main()
 //  cout<<"------------------------------HistoFile->ShowStreamerInfo---------------------------"<<endl;
 //  HistoFile->ShowStreamerInfo();
 //  cout<<"------------------------------MCgenFile-------------------------------------"<<endl;
-//  gSystem->Load("../.libs/libProdFoam.so");        // not needed
-//  gSystem->Load("../../MCdev/.libs/libMCdev.so");  // not needed
 
   char chcyc[100];          // Cycle text variable
   Text_t *Tcycle;           // Cycle text variable
@@ -105,7 +113,7 @@ int main()
       OutFile <<"iEvent = "<<iEvent<<endl<<flush;
       ///////////////////////////////////////////////////////////////
       // Disk Write for all histos and r.n. generator
-      sprintf(chcyc,"*;%i",iLoop); Tcycle = chcyc;
+      sprintf(chcyc,"*;%li",iLoop); Tcycle = chcyc;
       //cout<<"Main iLoop, Tcycle = "<< iLoop <<"|||"<< Tcycle <<"|||"<<endl;
       HistoFile->cd();
       HistoFile->Write();  //!!!

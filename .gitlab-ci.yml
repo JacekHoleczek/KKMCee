@@ -1,0 +1,195 @@
+
+stages:
+  - check-dockerfile
+  - build-docker-image
+  - build-dependencies
+  - build
+
+.all-build-kkmc:
+    stage: build
+    image: $CI_REGISTRY_IMAGE:${OS}_${V}
+    variables:
+      KKMC: $CI_PROJECT_DIR/ProdRun/MainCluster
+    artifacts:
+      paths: 
+        - $CI_PROJECT_DIR/CI/plots/*
+        - $CI_PROJECT_DIR/CI/physics-val/*/logfiles/*
+        - $CI_PROJECT_DIR/CI/physics-val/*/yodafiles/*
+        - public/
+      expire_in: 3 week
+    script:
+        - if [[ -f /cvmfs/sw-nightlies.hsf.org/key4hep/setup.sh ]]; then echo "found cvmfs"; else echo "Did not find cvmfs"; fi;
+        - if [[ -v ${Key4hep} ]]; then source /cvmfs/sw-nightlies.hsf.org/key4hep/setup.sh; fi;
+        - export hepmcpath=$(HepMC3-config --prefix)
+        - mkdir public
+        - cd ..
+        - git clone https://gitlab.cern.ch/photospp/photospp.git
+        - cd photospp
+        - libtoolize
+        - autoreconf -f -i
+        - ./configure --prefix=$CI_PROJECT_DIR/../photos-build --without-hepmc  --with-hepmc3=$hepmcpath
+        - make -j4
+        - make install
+        - cd $CI_PROJECT_DIR
+        - ln -f -s dizet-6.45 dizet
+        - libtoolize
+        - autoreconf -f -i
+        - ./configure --with-photos=$CI_PROJECT_DIR/../photos-build
+        - make -j6
+        - cd $CI_PROJECT_DIR/CI/scripts
+        - ./run-kkmc.sh
+
+
+# CENTOS Builds
+##########################################################################################
+##########################################################################################
+.check-image:
+  stage: check-dockerfile
+  image:
+        name: alpine/git
+        entrypoint: [""]
+  script:
+        - rm -rf new-${OS}-$V.txt
+        - git log -1 | grep ${OS}$V | head -n 1 >> new-${OS}-$V.txt || touch new-${OS}-$V.txt
+        - git diff --name-only HEAD HEAD~1 | grep CI/${OSDIR}/${df} | head -n 1 >> new-${OS}-$V.txt || touch new-${OS}-$V.txt
+        - if [ -s new-${OS}-$V.txt ]; then cat $CI_PROJECT_DIR/CI/${OSDIR}/${df}  > new-${OS}-$V.txt; fi
+        - if [ $CI_PIPELINE_SOURCE == "schedule" ]; then cat $CI_PROJECT_DIR/CI/${OSDIR}/docker$V  > new-${OS}-$V.txt; fi
+        - cat new-${OS}-$V.txt
+        - exit 0
+  artifacts:
+    paths:
+      - new-${OS}-$V.txt
+
+check-build-Fedora40:
+  variables:
+    OS: Fedora
+    OSDIR: fedora
+    V: 40
+    df: docker40
+  extends: .check-image
+# Fedora Builds
+##########################################################################################
+##########################################################################################
+.build-image-Fedora:
+  stage: build-docker-image
+  retry: 2
+  image:
+        name: gcr.io/kaniko-project/executor:debug
+        entrypoint: [""]
+  script:
+       - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+       - if [ -s new-Fedora-$V.txt ]; then /kaniko/executor --context $CI_PROJECT_DIR --dockerfile  $CI_PROJECT_DIR/CI/fedora/docker$V --destination $CI_REGISTRY_IMAGE:${OS}_${V}; fi
+
+build-image-Fedora40:
+  variables:
+    OS: Fedora
+    V: 40
+  extends: .build-image-Fedora
+
+Fedora40-build:
+  stage: build
+  variables:
+    OS: Fedora
+    V: 40
+  extends: .all-build-kkmc
+  needs:
+    - job: build-image-Fedora40
+
+
+# pages:
+#   image: $CI_REGISTRY_IMAGE:Fedora_40
+#   stage: deploy
+#   script:
+#       - cp -r $CI_PROJECT_DIR/CI/plots/Fedora40/eex-isr-alpha0/* public/
+#   artifacts:
+#     paths:
+#     - public
+
+
+# Key4Hep-build:
+#   stage: build
+#   tags: 
+#     - cvmfs
+#   variables:
+#     OS: CentOS
+#     V: 9
+#     Key4hep: true
+#   extends: .all-build-kkmc
+
+
+# Alma Builds
+##########################################################################################
+##########################################################################################
+# .build-image-Alma:
+#   stage: build-docker-image
+#   retry: 2
+#   image:
+#         name: gcr.io/kaniko-project/executor:debug
+#         entrypoint: [""]
+#   script:
+#        - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+#        - if [ -s new-Alma-$V.txt ]; then /kaniko/executor --context $CI_PROJECT_DIR --dockerfile  $CI_PROJECT_DIR/CI/alma/docker$V --destination $CI_REGISTRY_IMAGE:${OS}_${V}; fi
+
+
+# build-image-Alma9:
+#   variables:
+#     OS: Alma
+#     V: 9
+#   extends: .build-image-Alma
+
+
+# Alma9-build:
+#   stage: build
+#   tags: 
+#     - cvmfs
+#   variables:
+#     OS: Alma
+#     V: 9
+#   extends: .all-build-kkmc
+#   needs:
+#     - job: build-image-Alma9
+
+# check-phyics-Alma9:
+#   variables:
+#     OS: Alma
+#     OSDIR: alma
+#     V: 9
+#     df: docker9
+#   extends: .check-physics
+
+# check-phyics-CentOS8:
+#   variables:
+#     OS: CentOS
+#     OSDIR: centos
+#     V: 8
+#     df: docker8
+#   extends: .check-physics
+
+
+# check-phyics-CentOS9:
+#   variables:
+#     OS: CentOS
+#     OSDIR: centos
+#     V: 9
+#     df: docker9
+#   extends: .check-physics
+
+
+# check-phyics-Fedora40:
+#   variables:
+#     OS: Fedora
+#     OSDIR: fedora
+#     V: 40
+#     df: docker40
+#   extends: .check-physics
+
+# check-phyics-Key4Hep:
+#   tags: 
+#     - cvmfs
+#   variables:
+#     OS: alma9
+#     V: build
+#     Key4hep: true
+#   extends: .check-physics
+
+

@@ -63,7 +63,10 @@ Foam2/Makefile \
 MCdev/Makefile MCdev/farming/Makefile \
 SRCee/Makefile \
 DZface/Makefile \
-ProdRun/Makefile  ProdRun/workMini/Makefile  ProdRun/work1/Makefile ProdRun/workFoam/Makefile \
-                  ProdRun/workNU/Makefile ProdRun/workTau/Makefile ProdDigest/Makefile
+ProdRun/Makefile \
+  ProdRun/workMini/Makefile ProdRun/work1/Makefile ProdRun/workFoam/Makefile \
+  ProdRun/workBES/Makefile ProdRun/workNU/Makefile ProdRun/workTau/Makefile \
+  ProdRun/workKKMCee/Makefile \
+ProdDigest/Makefile
 ])
 AC_OUTPUT

@@ -1,0 +1,59 @@
+********************** THIS IS INPUT FILE FOR MainBES PROGRAM *********************
+*  This is input data for CEEX matrix element
+BeginX
+********************************************************************************
+*               ACTUAL DATA FOR THIS PARTICULAR RUN
+*-------------------------------------------------------------------------------
+*indx_____data______ccccccccc0cccc__________General_____ccc0ccccccccc0ccccccccc0
+    0           1000      1k   NEVT = number of events, OBSOLETE!!!
+* Center-of-mass energy [GeV]
+    1          100e0   CMSene =xpar( 1) CMS energy[GeV], superseeded by xpar[80],[81]
+*indx______data_____ccccccccc0ccccccccc0ccccccccc0ccccccccc0ccccccccc0ccccccccc0
+    9          4.0e0      WtMax =xpar( 9)   Maximum weight for rejection
+* KeyWgt=0 we get constant and for KeyWgt=1 variable weight events
+   10              0      =0 constant weight events
+   10              1      =1 variable weight events
+* Minimum and maximum v, where v = 1-sprim/s, v=1 is alowed
+* For the overall precision 1e-4 one should keep vmin=1e-5.
+   16           1e-5      vvmin =xpar(16)  may  be put to  vvmin < 1e-5
+** IMPORTANT: vmax is the cut on v=1-s'/s where s' is not the mass^2 of the 
+** final ffbar mass^2 but of the virtual object after ISR emission, before FSR.
+** and before FSR emission. It is obviously unphysical cut due to ISR*FSR interf.
+   17         0.90e0      vvmax =xpar(17)  if 1e0 then reduced inside program
+*   17            1e0      vvmax =xpar(17)  if 1e0 then reduced inside program
+*indx_____data______ccccccccc0ccccc________Process______ccc0ccccccccc0ccccccccc0
+**  Beam Energy Spread type
+   25              1      KeyBES BES, =0 none, =1 Gausian, =2 beamsstrahlung
+*indx_____data______ccccccccc0ccccccccc0ccccccccc0ccccccccc0ccccccccc0ccccccccc0
+   80        50.00e0      ParBES(0) beam1 energy in case of BES
+   81        50.00e0      ParBES(1) beam2 energy in case of BES
+   82       0.132e-2      ParBES(2) sigma1, dimensionles
+   83       0.132e-2      ParBES(3) sigma2, dimensionles
+   84       -0.745e0      ParBES(3) rho correlation parameter, dimensionles
+********************************************************************************
+*indx_____data______ccccccccc0ccccc________Miscel_______ccc0ccccccccc0ccccccccc0
+*     PrintOut from generator
+    5              1      LevPri =xpar( 5)  PrintOut Level 0,1,2
+    6              1      Ie1Pri =xpar( 6)  PrintOut Start point
+    7              1      Ie2Pri =xpar( 7)  PrintOut End   point
+********************************************************************************
+*indx_____data______ccccccccc0ccccccccc0ccccccccc0ccccccccc0ccccccccc0ccccccccc0
+**    define process
+*     LIST of Final state flavours to be generated randomly
+  413              1     KFfin, muon
+********************************************************************************
+* FOAM GENERATION PARAMETERS
+ 3020       54217137      Ranmar initial random number seed (KKMC and FOAM)
+*indx_____data______ccccccccc0cccc__________General_____ccc0ccccccccc0ccccccccc0
+ 3021          20000 FOAM Maximum number of cells (5000 default, 2000 for map)
+ 3022              0 FOAM Vopt: set to 0 to save vertices, 1 to NOT save them
+ 3023          50000 FOAM Number of MC samples inside single cell
+ 3024             16 FOAM Number of bins for edge-histogram in cell exploration
+ 3025             50 FOAM Events per bin during buildup
+* For unweighted events, FOAM OptRej can be 0 or 1. 
+ 3026              1 FOAM OptRej=1 for constant, =0 for variable weights (default 1)
+ 3027          1.1e0 FOAM Maximum FOAM weight for internal rejection (if used).
+ 3028              2 FOAM Drive = 0, 1, 2 (TrueVol, Sigma, WtMax)
+**********************************************************************************
+**********************************************************************************
+EndX

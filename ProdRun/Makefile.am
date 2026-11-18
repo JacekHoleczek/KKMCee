@@ -1,4 +1,4 @@
-SUBDIRS = workMini work1 workFoam workNU workTau
+SUBDIRS = workMini work1 workFoam workNU workTau workBES
 
 all_includes :=  -I$(top_srcdir)/SRCee -I$(top_srcdir)/MCdev -I$(top_srcdir)/Foam2 $(HEPMC_INCLUDES) $(PHOTOS_CPPFLAGS) $(all_includes)
 AM_CPPFLAGS = $(all_includes) $(ROOTCFLAGS) # used while compiling
@@ -58,7 +58,7 @@ libProdKK_la_LDFLAGS = -R $(PHOTOS_LIBDIR) #-Wl,-z,defs
 
 #/////////////////////////////////////////////////////////////
 # Local executables with ROOT persistency
-bin_PROGRAMS = MainKKMC MainFoam MainMini MainPers
+bin_PROGRAMS = MainKKMC MainFoam MainMini MainPers MainBES MainKKMCee MainCluster
 #/////////////////////////////////////////////////////////
 #-------------------------------------------------------------------------
 # option -no-install needed for debuger
@@ -66,14 +66,14 @@ bin_PROGRAMS = MainKKMC MainFoam MainMini MainPers
 MainKKMC_SOURCES = MainMCdev.cxx 
 MainKKMC_LDADD = \
 			libProdKK.la
-MainKKMC_LDFLAGS = -R $(PHOTOS_LIBDIR) $(PHOTOS_LDFLAGS) $(LDFLAGS_HEPMC) -no-install -g
+MainKKMC_LDFLAGS = -R $(PHOTOS_LIBDIR) $(PHOTOS_LDFLAGS) $(LDFLAGS_HEPMC) -no-install -g -Wl,--no-as-needed
 #-------------------------------------------------------------------------
 # option -no-install needed for debuger
 #-------------------------------------------------------------------------
 MainFoam_SOURCES = MainMCdev.cxx 
 MainFoam_LDADD = \
 			libProdFoam.la
-MainFoam_LDFLAGS = -R $(PHOTOS_LIBDIR) $(PHOTOS_LDFLAGS) $(LDFLAGS_HEPMC) -no-install -g
+MainFoam_LDFLAGS = -R $(PHOTOS_LIBDIR) $(PHOTOS_LDFLAGS) $(LDFLAGS_HEPMC) -no-install -g -Wl,--no-as-needed
 #/////////////////////////////////////////////////////////
 MainMini_SOURCES = MainMini.cxx
 MainMini_LDADD   = \
@@ -84,4 +84,19 @@ MainPers_SOURCES = MainPers.cxx
 MainPers_LDADD   = \
 			$(top_builddir)/SRCee/libKKee.la
 MainPers_LDFLAGS = -R $(PHOTOS_LIBDIR) $(PHOTOS_LDFLAGS) $(LDFLAGS_HEPMC) -no-install -g
+#/////////////////////////////////////////////////////////
+MainBES_SOURCES = MainBES.cxx
+MainBES_LDADD   = \
+			$(top_builddir)/SRCee/libKKee.la
+MainBES_LDFLAGS = -R $(PHOTOS_LIBDIR) $(PHOTOS_LDFLAGS) $(LDFLAGS_HEPMC) -no-install -g
+#/////////////////////////////////////////////////////////
+MainKKMCee_SOURCES = MainKKMCee.cxx
+MainKKMCee_LDADD   = \
+			$(top_builddir)/SRCee/libKKee.la
+MainKKMCee_LDFLAGS = -R $(PHOTOS_LIBDIR) $(PHOTOS_LDFLAGS) $(LDFLAGS_HEPMC) -no-install -g
+#/////////////////////////////////////////////////////////
+MainCluster_SOURCES = MainCluster.cxx
+MainCluster_LDADD   = \
+			$(top_builddir)/SRCee/libKKee.la
+MainCluster_LDFLAGS = -R $(PHOTOS_LIBDIR) $(PHOTOS_LDFLAGS) $(LDFLAGS_HEPMC) -no-install -g
 #-------------------------------------------------------------------------

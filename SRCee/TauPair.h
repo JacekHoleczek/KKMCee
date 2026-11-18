@@ -53,8 +53,8 @@ using namespace Photospp;
 extern "C" {
 /////////////////////////////
 // HepEvt
-  void hepevt_getf_( const int&);                    // fermion is here
-  void hepevt_getfbar_(const int&);                  // antifermion is here
+  void hepevt_getf_(  int&);                    // fermion is here
+  void hepevt_getfbar_( int&);                  // antifermion is here
 // tauface
   void tauface_setfermpos_(const int&, const int&);  // set ffbar positions in Tauola
 //  void tauface_print_();                    // printing event using pythia

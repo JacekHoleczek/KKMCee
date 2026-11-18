@@ -1,0 +1,5 @@
+FROM cern/alma9-base
+RUN  yum -y  install  dnf-plugins-core \
+                      bc make ninja-build cmake binutils git wget diffutils file sed gawk grep which autoconf automake libtool \
+                      gcc-gfortran gcc-c++ clang bzip2 \
+                      python3 && yum -y clean all

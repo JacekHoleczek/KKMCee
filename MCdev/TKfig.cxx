@@ -11,7 +11,67 @@ TKfig::TKfig(){
   m_PlotSelector = "";
 }/// 
 
+
+
 /////////////////////////////////////////////////////////////////////
+// This works for 1-dim histograms
+void TKfig::HisNorm1(TH1D *NorHst, TH1D *Hst){
+  // normalize histogram in nanobarns
+  Long_t   Nevt = NorHst->GetEntries();
+  Double_t Xsav = NorHst->GetBinContent(0)/Nevt; // NANOBARNS
+  cout<<"HisNorm1: Xsav = "<<Xsav<<"  Nevt =  "<<Nevt<<endl;
+  //
+  int      nbX  = Hst->GetNbinsX();
+  //cout<<"nbt = "<<nbt<<endl;
+  Double_t Xmax = Hst->GetXaxis()->GetXmax();
+  Double_t Xmin = Hst->GetXaxis()->GetXmin();
+  Double_t Fact = nbX*Xsav/(Xmax-Xmin)/Nevt;
+  cout<<"HisNorm1: Fact = "<<Fact<<endl;
+  Hst->Scale(Fact);
+}
+
+/////////////////////////////////////////////////////////////////////
+// This works for 2-dim histograms
+void TKfig::HisNorm2(TH1D *NorHst, TH2D *Hst){
+  // normalize histogram in nanobarns
+  Long_t   Nevt = NorHst->GetEntries();
+  Double_t Xsav = NorHst->GetBinContent(0)/Nevt; // NANOBARNS
+  cout<<"HisNorm2: Xsav = "<<Xsav<<"  Nevt =  "<<Nevt<<endl;
+  //
+  int      nbX  = Hst->GetNbinsX();
+  int      nbY  = Hst->GetNbinsY();
+  //cout<<"nbt = "<<nbt<<endl;
+  Double_t Xmax = Hst->GetXaxis()->GetXmax();
+  Double_t Xmin = Hst->GetXaxis()->GetXmin();
+  Double_t Ymax = Hst->GetYaxis()->GetXmax();
+  Double_t Ymin = Hst->GetYaxis()->GetXmin();
+  Double_t Fact = Xsav/Nevt;
+  Fact *= nbX/(Xmax-Xmin);
+  Fact *= nbY/(Ymax-Ymin);
+  cout<<"HisNorm2: Fact = "<<Fact<<endl;
+  Hst->Scale(Fact);
+}
+
+
+TH1D *TKfig::HstDiff(TString title, TH1D *HST1, TH1D *HST2, Int_t kolor)
+{
+TH1D *Hd12 = (TH1D*)HST1->Clone(title);
+Hd12->Add(HST1, HST2,    1.0, -1.0);
+Hd12->SetLineColor(kolor);
+return Hd12;
+}//HstDiff
+
+TH1D *TKfig::HstRatio(TString title, TH1D *HST1, TH1D *HST2, Int_t kolor)
+{
+TH1D *Hd12 = (TH1D*)HST1->Clone(title);
+Hd12->Divide(HST2);
+Hd12->SetLineColor(kolor);
+return Hd12;
+}//HstRatio
+
+
+/////////////////////////////////////////////////////////////////////
+//   OLD OBSOLETE !!!!!
 void TKfig::HistNorm(TH1D *NorHst, TH1D *Hst){
   // normalize histogram in nanobarns
   Hst->ls();
@@ -27,6 +87,8 @@ void TKfig::HistNorm(TH1D *NorHst, TH1D *Hst){
 }
 /////////////////////////////////////////////////////////////////////
 
+/////////////////////////////////////////////////////////////////////
+//   OLD OBSOLETE !!!!!
 /////////////////////////////////////////////////////////////////////
 void TKfig::HistNorm2(TH1D *NorHst, TH2D *Hst){
   // normalize histogram in nanobarns

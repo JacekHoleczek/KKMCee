@@ -424,7 +424,7 @@ BeginX
  3024             16 FOAM Number of bins for edge-histogram in cell exploration
  3025             50 FOAM Events per bin during buildup
 * For unweighted events, FOAM OptRej can be 0 or 1. 
- 3026              0 FOAM OptRej=1,0 for constant, variable weights (default 1)
+ 3026              1 FOAM OptRej=1,0 for constant, variable weights (default 1)
  3027          1.1e0 FOAM Maximum FOAM weight for internal rejection (if used).
  3028              2 FOAM Drive = 0, 1, 2 (TrueVol, Sigma, WtMax)
 *******************************************************************************

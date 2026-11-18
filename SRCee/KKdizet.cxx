@@ -272,7 +272,7 @@ void KKdizet::InterpoGSW(int KFi0, int KFf0, double svar, double CosThe){
 // temporary interface to CEEX/GPS
 //______________________________________________________________________
 void KKdizet::GetGSWxy(double GSW_re[], double GSW_im[]){
-	for(int i=0; i<10; i++){
+	for(int i=0; i<m_poinG; i++){
 		GSW_re[i] = m_GSW[i].real();
 		GSW_im[i] = m_GSW[i].imag();
 		//cout<<"KKdizet::GetGSWxy:  GSW_re[0], GSW_im[0]="<<GSW_re[0]<<"  "<< GSW_im[0]<<endl;

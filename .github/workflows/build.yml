@@ -9,14 +9,14 @@ jobs:
       fail-fast: false
       matrix:
         OS: ['key4hep/key4hep-images/alma9',
-             'key4hep/key4hep-images/ubuntu22',
-             'key4hep/key4hep-images/ubuntu24']
+             'key4hep/key4hep-images/ubuntu24',
+             'key4hep/key4hep-images/ubuntu26']
         SW: ['/cvmfs/sw.hsf.org/key4hep/setup.sh',
              '/cvmfs/sw-nightlies.hsf.org/key4hep/setup.sh']
         DZ: ['dizet-6.21', 'dizet-6.42', 'dizet-6.45']
     steps:
-    - uses: actions/checkout@v4
-    - uses: cvmfs-contrib/github-action-cvmfs@v4
+    - uses: actions/checkout@v7
+    - uses: cvmfs-contrib/github-action-cvmfs@v5
     - name: Start the container
       run: |
         docker run -it --name CI_container \

@@ -15,7 +15,8 @@ fi
 # if we failed to find it in the specified path then check some "standard locations"
 
 if test x$found_photos != xyes ; then
-  searchPaths="$(echo \"${CMAKE_PREFIX_PATH}\"|grep -o '[[^:]]*/[[pP]][[hH]][[oO]][[tT]][[oO]][[sS]]/[[^:]]*')" # FCCSW
+  searchPaths="$(echo ${CMAKE_PREFIX_PATH}|grep -o '[[^:]]*/[[pP]][[hH]][[oO]][[tT]][[oO]][[sS]]/[[^:]]*')" # FCCSW
+  searchPaths="$searchPaths $(echo ${CMAKE_PREFIX_PATH}|grep -o '[[^:]]*/[[lL]][[cC]][[gG]]/[[^:]]*')" # LCG
   searchPaths="$searchPaths /usr/local/PHOTOS /usr/local/photos"
   searchPaths="$searchPaths /opt/local/PHOTOS /opt/local/photos"
   searchPaths="$searchPaths /opt/PHOTOS /opt/photos"

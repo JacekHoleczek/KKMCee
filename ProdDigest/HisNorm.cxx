@@ -5,6 +5,8 @@
 /////////////////////////////////////////////////////////////////////
 #include "HisNorm.h"
 
+#include <math.h>
+
 double sqr( const Double_t x ){ return x*x;};
 
 
